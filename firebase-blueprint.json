@@ -1,0 +1,181 @@
+{
+  "entities": {
+    "Job": {
+      "title": "Job",
+      "description": "A tracked job opportunity on the user's job tracker rail.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "company": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "role": { "type": "string", "maxLength": 200 },
+        "stage": {
+          "type": "string",
+          "enum": ["Saved", "Applying", "Applied", "Interviewing", "Offer", "Rejected"]
+        },
+        "pay": { "type": "number" },
+        "location": { "type": "string", "maxLength": 200 },
+        "groupId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]*$" },
+        "order": { "type": "number" },
+        "isExample": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "version": { "type": "integer" }
+      },
+      "required": ["uid", "company", "role", "stage", "pay", "location", "groupId", "createdAt", "updatedAt", "version"]
+    },
+    "Group": {
+      "title": "Group",
+      "description": "A collapsible, color-coded group organizing jobs in the job tracker rail.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "color": { "type": "string", "minLength": 4, "maxLength": 32 },
+        "collapsed": { "type": "boolean" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "version": { "type": "integer" }
+      },
+      "required": ["uid", "name", "color", "collapsed", "order", "createdAt", "updatedAt", "version"]
+    },
+    "JobComment": {
+      "title": "JobComment",
+      "description": "A timestamped comment attached to a specific tracked job.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "jobId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "version": { "type": "integer" }
+      },
+      "required": ["uid", "jobId", "text", "createdAt", "updatedAt", "version"]
+    },
+    "TrackerEntry": {
+      "title": "TrackerEntry",
+      "description": "Detailed job application tracker record, notes, next step, and portfolio proof asset reference.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "companyName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "jobTitle": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "lane": { "type": "string", "maxLength": 160 },
+        "pay": { "type": "string", "maxLength": 120 },
+        "thcRisk": { "type": "string", "maxLength": 40 },
+        "score": { "type": "number" },
+        "applied": { "type": "boolean" },
+        "status": { "type": "string", "maxLength": 80 },
+        "followUpDate": { "type": "string", "maxLength": 80 },
+        "appliedDate": { "type": "string", "maxLength": 40 },
+        "notes": { "type": "string", "maxLength": 12000 },
+        "nextStep": { "type": "string", "maxLength": 1000 },
+        "resumeVersion": { "type": "string", "maxLength": 200 },
+        "portfolioPiece": { "type": "string", "maxLength": 300 },
+        "portfolioAssetUrl": { "type": "string", "maxLength": 2000 },
+        "portfolioStoragePath": { "type": "string", "maxLength": 500 },
+        "contactName": { "type": "string", "maxLength": 200 },
+        "riskWarning": { "type": "string", "maxLength": 500 },
+        "interviewPrep": { "type": "string", "maxLength": 4000 },
+        "packetData": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "version": { "type": "integer" }
+      },
+      "required": ["uid", "companyName", "jobTitle", "lane", "pay", "thcRisk", "score", "applied", "followUpDate", "notes", "createdAt", "updatedAt", "version"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Clay job leads, Clay companies, Notion-synced records, Job Feed saved roles, Target Companies, and XELIME opportunities.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "recordType": {
+          "type": "string",
+          "enum": ["clay_lead", "clay_company", "notion_record", "job_feed", "target_company", "xelime_opportunity"]
+        },
+        "title": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "company": { "type": "string", "maxLength": 240 },
+        "status": { "type": "string", "maxLength": 100 },
+        "location": { "type": "string", "maxLength": 240 },
+        "pay": { "type": "string", "maxLength": 120 },
+        "applyUrl": { "type": "string", "maxLength": 2000 },
+        "source": { "type": "string", "maxLength": 160 },
+        "matchScore": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 12000 },
+        "matchedSkills": { "type": "array" },
+        "missingSkills": { "type": "array" },
+        "payload": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "version": { "type": "integer" }
+      },
+      "required": ["uid", "recordType", "title", "company", "status", "createdAt", "updatedAt", "version"]
+    },
+    "SearchCacheEntry": {
+      "title": "SearchCacheEntry",
+      "description": "Per-user cached job aggregator search results with TTL expiration.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "query": { "type": "string", "maxLength": 300 },
+        "location": { "type": "string", "maxLength": 200 },
+        "source": { "type": "string", "maxLength": 80 },
+        "remoteOnly": { "type": "boolean" },
+        "providersUsed": { "type": "array" },
+        "jobs": { "type": "array" },
+        "apiCallsLogged": { "type": "number" },
+        "expiresAt": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "version": { "type": "integer" }
+      },
+      "required": ["uid", "query", "source", "providersUsed", "jobs", "expiresAt", "createdAt", "updatedAt", "version"]
+    },
+    "UserSettingsDoc": {
+      "title": "UserSettingsDoc",
+      "description": "User-scoped configuration, profile, portfolio proof metadata, CRM/workflows, AI logs/chats, and Notion/Clay integration state.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "kind": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "data": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "version": { "type": "integer" }
+      },
+      "required": ["uid", "kind", "data", "createdAt", "updatedAt", "version"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}/jobs/{jobId}": {
+      "schema": { "$ref": "#/entities/Job" },
+      "description": "Tracked jobs in the user's job tracker rail."
+    },
+    "/users/{uid}/groups/{groupId}": {
+      "schema": { "$ref": "#/entities/Group" },
+      "description": "Collapsible groups for organizing jobs in the rail."
+    },
+    "/users/{uid}/jobs/{jobId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/JobComment" },
+      "description": "Comments nested under each tracked job."
+    },
+    "/users/{uid}/tracker/{entryId}": {
+      "schema": { "$ref": "#/entities/TrackerEntry" },
+      "description": "Application details, notes, next steps, saved packets, and portfolio proof attachments."
+    },
+    "/users/{uid}/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Clay leads, Clay companies, Notion-synced records, saved feed jobs, target companies, and XELIME opportunities."
+    },
+    "/users/{uid}/searchCache/{key}": {
+      "schema": { "$ref": "#/entities/SearchCacheEntry" },
+      "description": "Cached live job search results with expiresAt timestamp."
+    },
+    "/users/{uid}/settings/{docId}": {
+      "schema": { "$ref": "#/entities/UserSettingsDoc" },
+      "description": "User-scoped profile, preferences, CRM contacts, bridge income gigs, workflows, AI provider configs/chats, and integration sync state."
+    }
+  }
+}

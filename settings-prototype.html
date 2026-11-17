@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings Prototype</title>
+<style>
+/* Settings prototype: registry-driven sections, validation, dirty state, reset, export without secrets.
+   The API setup section applies right away (it talks to the server), so it sits outside the save bar. */
+:root {
+  color-scheme: dark;
+  --bg: #0b0b0c; --panel: #141415; --panel-2: #1b1b1d; --line: #27272a;
+  --ink: #f3f3f4; --ink-2: #a8a8af; --ink-3: #81818a;
+  --accent: #3fa2f2; --good: #5dd3a6; --warn: #f2b84b; --bad: #ff7b6e;
+  --font: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font); padding: 20px 16px 60px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 16px; }
+header.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+header.top h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+.sub { color: var(--ink-3); font-size: 13px; }
+.status { font-size: 12.5px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
+.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.status.ok::before { background: var(--good); }
+.status.dirty::before { background: var(--warn); }
+.status.err::before { background: var(--bad); }
+
+.bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.search { flex: 1 1 240px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; height: 38px; padding: 0 12px; }
+.btn { height: 36px; border: 0; border-radius: 10px; background: var(--ink); color: #0b0b0c; font-weight: 600; padding: 0 14px; }
+.btn.ghost { background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+.btn.small { height: 34px; padding: 0 12px; font-size: 13px; }
+.btn:disabled { opacity: 0.45; }
+
+.layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+nav.sections { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 8px; display: grid; gap: 2px; position: sticky; top: 12px; }
+nav.sections button { text-align: left; background: none; border: 0; padding: 8px 10px; border-radius: 8px; color: var(--ink-2); font-size: 13.5px; }
+nav.sections button[aria-current="true"] { background: var(--panel-2); color: var(--ink); }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.card > header { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.card > header h2 { margin: 0; font-size: 16px; }
+.card > header p { margin: 4px 0 0; color: var(--ink-3); font-size: 13px; }
+.setting { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 300px); gap: 14px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.setting:last-child { border-bottom: 0; }
+@media (max-width: 640px) { .setting { grid-template-columns: 1fr; } }
+.setting.dirty { background: rgba(242, 184, 75, 0.05); }
+.label { font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.help { color: var(--ink-3); font-size: 12.5px; margin-top: 2px; }
+.badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--panel-2); color: var(--ink-3); }
+.control { display: grid; gap: 6px; }
+.control input, .control select {
+  width: 100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; height: 38px; padding: 0 10px;
+}
+.control input[type="checkbox"] { width: 42px; height: 24px; accent-color: var(--accent); justify-self: start; }
+.control .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.err-text { color: var(--bad); font-size: 12.5px; }
+.reset { background: none; border: 0; color: var(--ink-3); font-size: 12.5px; padding: 0; }
+.reset:hover { color: var(--accent); }
+.empty { padding: 24px; color: var(--ink-3); text-align: center; }
+.foot { color: var(--ink-3); font-size: 12px; }
+
+/* API setup */
+.api-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 330px); gap: 14px; align-items: start; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.api-row:last-child { border-bottom: 0; }
+@media (max-width: 640px) { .api-row { grid-template-columns: 1fr; } }
+.api-ctrl { display: grid; gap: 8px; min-width: 0; }
+.api-ctrl form { display: flex; gap: 8px; }
+.api-ctrl input[type="password"], .api-ctrl input[type="number"] {
+  min-width: 0; flex: 1; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; height: 34px; padding: 0 10px;
+}
+.api-ctrl .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.capline { display: flex; gap: 8px; align-items: center; color: var(--ink-2); font-size: 12.5px; flex-wrap: wrap; }
+.capline input { width: 110px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; height: 34px; padding: 0 10px; }
+.pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-3); }
+.pill.good { color: var(--good); border-color: rgba(93, 211, 166, 0.35); }
+.pill.warn { color: var(--warn); border-color: rgba(242, 184, 75, 0.35); }
+.pill.bad { color: var(--bad); border-color: rgba(255, 123, 110, 0.35); }
+.pill.info { color: var(--accent); border-color: rgba(63, 162, 242, 0.35); }
+.api-note { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
+.api-group { padding: 10px 18px; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); background: var(--panel-2); border-bottom: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Settings</h1>
+      <div class="sub">Changes save to your account. Keys are write-only and are never shown here.</div>
+    </div>
+    <div class="status" id="status">Loaded</div>
+  </header>
+
+  <div class="bar">
+    <input class="search" id="search" type="search" placeholder="Search settings" aria-label="Search settings">
+    <button class="btn ghost" id="exportBtn" type="button">Export</button>
+    <button class="btn ghost" id="discardBtn" type="button" disabled>Discard changes</button>
+    <button class="btn" id="saveBtn" type="button" disabled>Save changes</button>
+  </div>
+
+  <div class="layout">
+    <nav class="sections" id="nav" aria-label="Settings sections"></nav>
+    <main id="content" style="display:grid;gap:14px;min-width:0"></main>
+  </div>
+  <p class="foot">Prototype. Settings save to this browser only. The real version stores them in Firestore under users/{uid}/settings, with the version check and server validation described in the plan. API keys are sent to the server and never kept in this page.</p>
+</div>
+
+<script>
+(function () {
+  var KEY = "settings-prototype-v1";
+  var APIS_KEY = "settings-prototype-apis-v1";
+
+  // Registry: one definition per setting. Scope tells where the value lives.
+  var REGISTRY = [
+    { id: "ai", title: "AI providers", desc: "Which models Slate AI can use and where local models live.", items: [
+      { key: "ai.gemini.enabled", label: "Gemini", type: "boolean", def: true, scope: "user", help: "Use Gemini for chat and analysis." },
+      { key: "ai.openrouter.enabled", label: "OpenRouter", type: "boolean", def: true, scope: "user", help: "Use OpenRouter models." },
+      { key: "ai.ollama.baseUrl", label: "Ollama base URL", type: "url", def: "http://127.0.0.1:11434", allowPrivateHosts: true, scope: "user", help: "Local models. Private addresses are allowed for this provider only." },
+      { key: "ai.lmstudio.baseUrl", label: "LM Studio base URL", type: "url", def: "http://127.0.0.1:1234", allowPrivateHosts: true, scope: "user", help: "Local server. Private addresses are allowed for this provider only." },
+      { key: "ai.model.default", label: "Default model", type: "select", def: "gemini", options: ["gemini", "openrouter-free", "ollama", "lmstudio"], scope: "user", help: "Used when a feature doesn't pick a model." }
+    ]},
+    { id: "jobs", title: "Job search", desc: "Defaults for live searches and the job feed.", items: [
+      { key: "jobs.location", label: "Home location", type: "text", def: "Columbus, OH", maxLength: 120, scope: "user", help: "Used for local results." },
+      { key: "jobs.remoteOnly", label: "Remote only", type: "boolean", def: false, scope: "user", help: "Hide onsite and hybrid roles." },
+      { key: "jobs.minPay", label: "Minimum pay (thousands per year)", type: "number", def: 0, min: 0, max: 500, scope: "user", help: "Roles below this are hidden." },
+      { key: "jobs.lanes", label: "Default lane", type: "select", def: "all", options: ["all", "Lane A", "Lane B", "Lane C", "Lane D"], scope: "user", help: "Lane shown when the feed opens." }
+    ]},
+    { id: "apis", title: "API setup", desc: "Connect the outside services Slate uses.", items: [] },
+    { id: "ui", title: "Appearance", desc: "How the workspace looks on this account.", items: [
+      { key: "ui.density", label: "Density", type: "select", def: "comfortable", options: ["comfortable", "compact"], scope: "user", help: "Spacing in lists and cards." },
+      { key: "ui.showExamples", label: "Show example data", type: "boolean", def: true, scope: "user", help: "Show starter jobs marked as examples." }
+    ]}
+  ];
+
+  // The services. needsKey false means no secret is involved (local servers and public feeds).
+  var APIS = [
+    { id: "gemini", name: "Gemini", group: "AI", needsKey: true, cap: true, help: "Google AI Studio key for chat and analysis." },
+    { id: "openrouter", name: "OpenRouter", group: "AI", needsKey: true, cap: true, help: "Routes to many hosted models. Set a monthly cap." },
+    { id: "dashscope", name: "DashScope", group: "AI", needsKey: true, cap: true, help: "Qwen models from Alibaba Cloud." },
+    { id: "anthropic", name: "Anthropic", group: "AI", needsKey: true, cap: true, help: "Claude models through the API." },
+    { id: "azure", name: "Azure OpenAI", group: "AI", needsKey: true, cap: true, help: "Your own Azure OpenAI deployment." },
+    { id: "ollama", name: "Ollama", group: "Local AI", needsKey: false, help: "Runs on your machine. Base URL is under AI providers." },
+    { id: "lmstudio", name: "LM Studio", group: "Local AI", needsKey: false, help: "Local server. Base URL is under AI providers." },
+    { id: "jsearch", name: "JSearch", group: "Job sources", needsKey: true, help: "RapidAPI key. Saved keys feed the live search automatically (env key wins if both exist)." },
+    { id: "adzuna", name: "Adzuna", group: "Job sources", needsKey: true, help: "Save both values in one line: appId:appKey." },
+    { id: "jooble", name: "Jooble", group: "Job sources", needsKey: true, help: "Free key from jooble.org/api/about." },
+    { id: "usajobs", name: "USAJOBS", group: "Job sources", needsKey: true, help: "Save key and email in one line: key:you@example.com." },
+    { id: "remotive", name: "Remotive", group: "Job sources", needsKey: false, help: "Public remote-jobs feed. No key needed." },
+    { id: "jobicy", name: "Jobicy", group: "Job sources", needsKey: false, help: "Public remote-jobs feed. No key needed." },
+    { id: "himalayas", name: "Himalayas", group: "Job sources", needsKey: false, help: "Public remote-jobs feed. No key needed." },
+    { id: "arbeitnow", name: "Arbeitnow", group: "Job sources", needsKey: false, help: "Public job feed. No key needed." },
+    { id: "boards", name: "Greenhouse, Lever, Ashby boards", group: "Job sources", needsKey: false, help: "Public company job boards. No key needed." },
+    { id: "notion", name: "Notion", group: "Workspace", needsKey: true, help: "Integration token for pages and databases." },
+    { id: "clay", name: "Clay", group: "Workspace", needsKey: true, help: "Webhook secret for lead enrichment." },
+    { id: "gmaps", name: "Google Maps Platform", group: "Workspace", needsKey: true, help: "Places and distance lookups." }
+  ];
+
+  // Flat map for quick lookup and the saved values
+  var ALL = {};
+  REGISTRY.forEach(function (sec) { sec.items.forEach(function (it) { ALL[it.key] = it; it.sectionId = sec.id; }); });
+
+  var saved = {};
+  var draft = {};
+  var version = 1;
+  var active = "ai";
+  var query = "";
+  var apiMeta = {};   // id -> { configured, lastTested, status, testing, cap, source }  (never a key)
+  var apiNote = {};   // id -> short message shown under the row
+  var authToken = null; // handed over by the parent window; required for real key actions
+
+  window.addEventListener("message", function (e) {
+    if (e.data && e.data.type === "career-engine:settings-auth" && e.data.token) {
+      authToken = e.data.token;
+      syncFromServer();
+    }
+  });
+
+  function apiFetch(path, method, body) {
+    if (!authToken) return Promise.reject(new Error("Sign in to Career Engine first, then reopen Settings."));
+    return fetch(path, {
+      method: method,
+      headers: Object.assign({ "Content-Type": "application/json" }, { "Authorization": "Bearer " + authToken }),
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.error || "Request failed (" + res.status + ")");
+        return data;
+      });
+    });
+  }
+
+  function syncFromServer() {
+    apiFetch("/api/settings/keys", "GET").then(function (data) {
+      var services = data.services || {};
+      APIS.forEach(function (a) {
+        if (!a.needsKey || !services[a.id]) return;
+        var s = services[a.id];
+        setMeta(a.id, {
+          configured: s.configured,
+          status: "",
+          lastTested: null,
+          source: s.source
+        });
+      });
+      render();
+    }).catch(function (e) {
+      apiNote["_server"] = e.message;
+      render();
+    });
+  }
+
+  function load() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (raw && raw.values) { saved = raw.values; version = raw.version || 1; }
+    } catch (e) {}
+    Object.keys(ALL).forEach(function (k) {
+      if (!(k in saved)) saved[k] = ALL[k].def;
+    });
+    draft = JSON.parse(JSON.stringify(saved));
+  }
+
+  function persist() {
+    try { localStorage.setItem(KEY, JSON.stringify({ values: saved, version: version })); return true; }
+    catch (e) { return false; }
+  }
+
+  function loadApis() {
+    try { apiMeta = JSON.parse(localStorage.getItem(APIS_KEY) || "{}") || {}; } catch (e) { apiMeta = {}; }
+  }
+  function saveApis() {
+    try { localStorage.setItem(APIS_KEY, JSON.stringify(apiMeta)); return true; } catch (e) { return false; }
+  }
+  function metaFor(id) {
+    return apiMeta[id] || { configured: false, lastTested: null, status: "", testing: false, cap: null };
+  }
+  function setMeta(id, patch) {
+    apiMeta[id] = Object.assign({}, metaFor(id), patch);
+    saveApis();
+  }
+  function findApi(id) {
+    for (var i = 0; i < APIS.length; i++) if (APIS[i].id === id) return APIS[i];
+    return null;
+  }
+
+  // Validation mirrors the server rules: bounded numbers, https or allowed-private URLs, text limits.
+  function validate(item, value) {
+    if (item.type === "number") {
+      if (typeof value !== "number" || isNaN(value)) return "Enter a number.";
+      if (value < item.min || value > item.max) return "Must be between " + item.min + " and " + item.max + ".";
+    }
+    if (item.type === "text" && item.maxLength && String(value).length > item.maxLength) return "Keep it under " + item.maxLength + " characters.";
+    if (item.type === "url") {
+      var u;
+      try { u = new URL(value); } catch (e) { return "Enter a full URL, such as https://example.com."; }
+      var priv = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(u.hostname);
+      if (priv && !item.allowPrivateHosts) return "Private addresses aren't allowed for this setting.";
+      if (u.protocol !== "https:" && !(priv && u.protocol === "http:")) return "Use https, or http for a local address.";
+    }
+    return "";
+  }
+
+  function dirtyKeys() {
+    return Object.keys(ALL).filter(function (k) {
+      return JSON.stringify(draft[k]) !== JSON.stringify(saved[k]);
+    });
+  }
+
+  function errorsNow() {
+    var errs = {};
+    Object.keys(ALL).forEach(function (k) {
+      var e = validate(ALL[k], draft[k]);
+      if (e) errs[k] = e;
+    });
+    return errs;
+  }
+
+  function setStatus(text, cls) {
+    var el = document.getElementById("status");
+    el.textContent = text;
+    el.className = "status " + (cls || "");
+  }
+
+  function refreshBar() {
+    var d = dirtyKeys(), errs = errorsNow(), hasErr = Object.keys(errs).length > 0;
+    document.getElementById("saveBtn").disabled = !d.length || hasErr;
+    document.getElementById("discardBtn").disabled = !d.length;
+    if (hasErr) setStatus("Fix " + Object.keys(errs).length + " field(s) to save", "err");
+    else if (d.length) setStatus(d.length + " unsaved change(s)", "dirty");
+    else setStatus("All changes saved (v" + version + ")", "ok");
+  }
+
+  function control(item) {
+    var v = draft[item.key];
+    var id = "f_" + item.key.replace(/\./g, "_");
+    if (item.type === "boolean") {
+      return '<input type="checkbox" id="' + id + '" data-k="' + item.key + '"' + (v ? " checked" : "") + ' aria-label="' + item.label + '">';
+    }
+    if (item.type === "select") {
+      return '<select id="' + id + '" data-k="' + item.key + '" aria-label="' + item.label + '">' +
+        item.options.map(function (o) { return '<option value="' + o + '"' + (o === v ? " selected" : "") + ">" + o + "</option>"; }).join("") + "</select>";
+    }
+    if (item.type === "number") {
+      return '<input type="number" id="' + id + '" data-k="' + item.key + '" min="' + item.min + '" max="' + item.max + '" value="' + v + '" aria-label="' + item.label + '">';
+    }
+    return '<input type="' + (item.type === "url" ? "url" : "text") + '" id="' + id + '" data-k="' + item.key + '" value="' + String(v).replace(/"/g, "&quot;") + '" aria-label="' + item.label + '">';
+  }
+
+  // ---- API setup ----
+  function statusInfo(a) {
+    var m = metaFor(a.id);
+    if (m.testing) return { cls: "info", text: "Testing…" };
+    if (!a.needsKey) return { cls: "info", text: "No key needed" };
+    if (!m.configured) return { cls: "", text: "Not set" };
+    if (m.status === "failed") return { cls: "bad", text: "Test failed" };
+    if (m.lastTested && m.status === "ok") return { cls: "good", text: "Connected" };
+    if (m.source === "env") return { cls: "info", text: "Server key (.env)" };
+    if (m.source === "user") return { cls: "warn", text: "Key saved, not tested" };
+    return { cls: "warn", text: "Key saved, not tested" };
+  }
+
+  function apiRow(a) {
+    var m = metaFor(a.id), st = statusInfo(a), note = apiNote[a.id] || "";
+    var ctrl;
+    if (a.needsKey && !m.configured) {
+      ctrl = '<form data-api-form="' + a.id + '" autocomplete="off">' +
+        '<input type="password" name="apikey" placeholder="Paste key" aria-label="' + a.name + ' API key">' +
+        '<button class="btn small" type="submit">Save key</button></form>';
+    } else {
+      ctrl = '<div class="acts">' +
+        '<button class="btn ghost small" type="button" data-api-act="test" data-id="' + a.id + '"' + (m.testing ? " disabled" : "") + ">Test connection</button>" +
+        (a.needsKey && m.source === "user" ? '<button class="btn ghost small" type="button" data-api-act="remove" data-id="' + a.id + '">Remove key</button>' : "") +
+        "</div>";
+    }
+    if (a.cap) {
+      ctrl += '<label class="capline">Monthly cap (USD) <input type="number" min="0" max="500" data-api-cap="' + a.id + '" value="' +
+        (m.cap == null ? "" : m.cap) + '" placeholder="No cap" aria-label="' + a.name + ' monthly cap"></label>';
+    }
+    return '<div class="api-row">' +
+      '<div><div class="label">' + a.name + ' <span class="badge">' + a.group + '</span> <span class="pill ' + st.cls + '">' + st.text + "</span></div>" +
+        '<div class="help">' + a.help + "</div>" +
+        '<div class="help">' + (m.lastTested ? "Last tested " + new Date(m.lastTested).toLocaleString() : "Never tested") + "</div>" +
+        (note ? '<div class="api-note">' + note + "</div>" : "") +
+      "</div>" +
+      '<div class="api-ctrl">' + ctrl + "</div></div>";
+  }
+
+  function renderApis() {
+    var html = '<section class="card"><header><h2>API setup</h2>' +
+      '<p>Keys are write-only. Once saved, a key is never shown again, only its status. These actions apply right away and do not wait for Save changes.</p></header>';
+    var lastGroup = "";
+    APIS.forEach(function (a) {
+      if (a.group !== lastGroup) { html += '<div class="api-group">' + a.group + "</div>"; lastGroup = a.group; }
+      html += apiRow(a);
+    });
+    return html + "</section>";
+  }
+
+  function testApi(id) {
+    var a = findApi(id); if (!a) return;
+    apiNote[id] = "";
+    setMeta(id, { testing: true });
+    render();
+    apiFetch("/api/settings/keys/test", "POST", { service: id }).then(function (data) {
+      setMeta(id, { testing: false, status: data.ok ? "ok" : "failed", lastTested: new Date().toISOString() });
+      apiNote[id] = data.ok ? (data.note || "Test passed.") : (data.note || "Test failed.");
+      render();
+    }).catch(function (e) {
+      setMeta(id, { testing: false, status: "failed", lastTested: new Date().toISOString() });
+      apiNote[id] = e.message;
+      render();
+    });
+  }
+
+  function saveKey(id, input) {
+    var a = findApi(id); if (!a) return;
+    var value = String(input.value || "").trim();
+    if (!value) { apiNote[id] = "Paste a key first."; render(); return; }
+    if (value.length > 600) { apiNote[id] = "That looks too long to be a key."; render(); return; }
+    // Real: the key goes straight to the server over HTTPS and is stored per-user.
+    // This page keeps only the returned status, never the key.
+    apiFetch("/api/settings/keys", "POST", { service: id, key: value }).then(function () {
+      input.value = "";
+      setMeta(id, { configured: true, status: "", lastTested: null, testing: false, source: "user" });
+      apiNote[id] = "Key saved. Test the connection to confirm it works.";
+      render();
+    }).catch(function (e) {
+      apiNote[id] = e.message;
+      render();
+    });
+  }
+
+  function removeKey(id) {
+    apiFetch("/api/settings/keys/" + id, "DELETE").then(function () {
+      setMeta(id, { configured: false, status: "", lastTested: null, testing: false, source: "none" });
+      apiNote[id] = "Key removed.";
+      render();
+    }).catch(function (e) {
+      apiNote[id] = e.message;
+      render();
+    });
+  }
+
+  function setCap(id, raw) {
+    var v = String(raw).trim();
+    if (v === "") { setMeta(id, { cap: null }); apiNote[id] = "Cap removed."; }
+    else {
+      var n = Number(v);
+      if (isNaN(n) || n < 0 || n > 500) { apiNote[id] = "Cap must be between 0 and 500."; render(); return; }
+      setMeta(id, { cap: n }); apiNote[id] = "Cap saved.";
+    }
+    render();
+  }
+
+  function render() {
+    var nav = document.getElementById("nav");
+    nav.innerHTML = REGISTRY.map(function (s) {
+      return '<button type="button" data-sec="' + s.id + '" aria-current="' + (s.id === active) + '">' + s.title + "</button>";
+    }).join("");
+
+    var q = query.trim().toLowerCase();
+    var errs = errorsNow();
+    var html = "";
+    REGISTRY.forEach(function (sec) {
+      if (sec.id === "apis") {
+        if (!q && active === "apis") html += renderApis();
+        return;
+      }
+      if (!q && sec.id !== active) return;
+      var items = sec.items.filter(function (it) {
+        return !q || (it.label + " " + it.help + " " + it.key).toLowerCase().indexOf(q) !== -1;
+      });
+      if (!items.length) return;
+      html += '<section class="card"><header><h2>' + sec.title + '</h2><p>' + sec.desc + '</p></header>';
+      items.forEach(function (it) {
+        var isDirty = JSON.stringify(draft[it.key]) !== JSON.stringify(saved[it.key]);
+        var badge = it.scope === "global" ? '<span class="badge">global</span>' : "";
+        var resetBtn = isDirty ? '<button type="button" class="reset" data-reset="' + it.key + '">Reset to saved</button>' : "";
+        html += '<div class="setting' + (isDirty ? " dirty" : "") + '">' +
+          '<div><div class="label">' + it.label + badge + '</div><div class="help">' + it.help + "</div></div>" +
+          '<div class="control">' + control(it) +
+            '<div class="row">' + (errs[it.key] ? '<span class="err-text">' + errs[it.key] + "</span>" : "<span></span>") + resetBtn + "</div>" +
+          "</div></div>";
+      });
+      html += "</section>";
+    });
+    if (!html) html = '<div class="card empty">No settings match "' + query + '".</div>';
+    document.getElementById("content").innerHTML = html;
+    refreshBar();
+  }
+
+  function setDraft(key, raw) {
+    var it = ALL[key];
+    var v;
+    if (it.type === "boolean") v = raw;
+    else if (it.type === "number") v = raw === "" ? NaN : Number(raw);
+    else v = raw;
+    draft[key] = v;
+  }
+
+  // Events
+  document.getElementById("nav").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-sec]"); if (!b) return;
+    active = b.getAttribute("data-sec"); query = ""; document.getElementById("search").value = ""; render();
+  });
+  document.getElementById("content").addEventListener("input", function (e) {
+    var el = e.target, k = el.getAttribute("data-k"); if (!k) return;
+    setDraft(k, el.type === "checkbox" ? el.checked : el.value);
+    render();
+    var again = document.querySelector('[data-k="' + k + '"]'); if (again) again.focus();
+  });
+  document.getElementById("content").addEventListener("change", function (e) {
+    var el = e.target;
+    if (el.hasAttribute && el.hasAttribute("data-api-cap")) { setCap(el.getAttribute("data-api-cap"), el.value); return; }
+    var k = el.getAttribute("data-k"); if (!k) return;
+    setDraft(k, el.type === "checkbox" ? el.checked : el.value);
+    render();
+  });
+  document.getElementById("content").addEventListener("submit", function (e) {
+    var f = e.target.closest ? e.target.closest("[data-api-form]") : null; if (!f) return;
+    e.preventDefault();
+    saveKey(f.getAttribute("data-api-form"), f.elements.apikey);
+  });
+  document.getElementById("content").addEventListener("click", function (e) {
+    var act = e.target.closest("[data-api-act]");
+    if (act) {
+      var id = act.getAttribute("data-id");
+      if (act.getAttribute("data-api-act") === "test") testApi(id);
+      else if (act.getAttribute("data-api-act") === "remove") removeKey(id);
+      return;
+    }
+    var b = e.target.closest("[data-reset]"); if (!b) return;
+    var k = b.getAttribute("data-reset"); draft[k] = JSON.parse(JSON.stringify(saved[k])); render();
+  });
+  document.getElementById("search").addEventListener("input", function (e) { query = e.target.value; render(); });
+  document.getElementById("discardBtn").addEventListener("click", function () {
+    draft = JSON.parse(JSON.stringify(saved)); render();
+  });
+  document.getElementById("saveBtn").addEventListener("click", function () {
+    var d = dirtyKeys();
+    if (!d.length || Object.keys(errorsNow()).length) return;
+    d.forEach(function (k) { saved[k] = JSON.parse(JSON.stringify(draft[k])); });
+    version += 1;
+    if (persist()) setStatus("Saved (v" + version + ")", "ok");
+    else setStatus("Save failed: browser storage is full or blocked", "err");
+    render();
+  });
+  document.getElementById("exportBtn").addEventListener("click", function () {
+    // Export never includes keys. API entries carry only status, cap and last test time.
+    var out = { version: version, exportedAt: new Date().toISOString(), settings: {}, apis: {} };
+    Object.keys(ALL).forEach(function (k) { out.settings[k] = saved[k]; });
+    APIS.forEach(function (a) {
+      var m = metaFor(a.id);
+      out.apis[a.id] = { configured: m.configured, cap: m.cap, lastTested: m.lastTested };
+    });
+    var blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "settings-export.json"; a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+  window.addEventListener("beforeunload", function (e) {
+    if (dirtyKeys().length) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  loadApis();
+  load();
+  render();
+})();
+</script>
+</body>
+</html>

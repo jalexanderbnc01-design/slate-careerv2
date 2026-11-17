@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Tracker Rail</title>
+<style>
+/* Job tracker rail: grouped job applications, comments, drag to reorder, add job. */
+:root {
+  color-scheme: dark;
+  --bg: #0b0b0c; --panel: #141415; --panel-2: #1b1b1d; --panel-3: #252528;
+  --line: #27272a; --ink: #f3f3f4; --ink-2: #a8a8af; --ink-3: #81818a;
+  --accent: #3fa2f2; --good: #5dd3a6; --warn: #f2b84b; --bad: #ff7b6e;
+  --font-body: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 20px 16px; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font-body); }
+input, button { font: inherit; color: inherit; }
+input { width: 100%; min-width: 0; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; height: 38px; font-size: 0.92rem; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input::placeholder { color: var(--ink-3); }
+.btn { height: 38px; border: 0; border-radius: 10px; background: var(--ink); color: #0b0b0c; font-weight: 600; cursor: pointer; padding: 0 16px; white-space: nowrap; }
+.btn.ghost { background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); font-weight: 500; font-size: 0.82rem; height: 34px; }
+.note { font-size: 0.78rem; color: var(--ink-3); margin: 0; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.rail { max-width: 340px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.addbox { display: flex; flex-direction: column; gap: 8px; }
+.addrow { display: flex; gap: 8px; }
+.railbar { display: flex; }
+.list { display: flex; flex-direction: column; gap: 14px; max-height: 560px; overflow-y: auto; padding-right: 2px; }
+.list.dragmode .grp.collapsed .items { display: flex; }
+.list.groupdrag .items { display: none !important; }
+
+.grp { display: flex; flex-direction: column; gap: 6px; border-radius: 14px; min-width: 0; }
+.grp.colored { border: 1.5px solid var(--gc); background: color-mix(in srgb, var(--gc) 9%, transparent); padding: 8px; }
+.grp.plain { border: 1px dashed var(--line); padding: 8px; }
+.grp.dragging { box-shadow: 0 0 0 2px var(--accent); }
+.grp.collapsed .items { display: none; }
+.gh { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.gname { flex: 1; min-width: 0; height: 28px; background: transparent; border: 1px solid transparent; font-size: 0.85rem; font-weight: 600; color: var(--ink-2); padding: 2px 6px; border-radius: 8px; }
+.gname:hover { border-color: var(--line); }
+.gstatic { flex: 1; font-size: 0.85rem; font-weight: 600; padding: 2px 6px; color: var(--ink-2); }
+.gcount { font-size: 0.74rem; color: var(--ink-3); padding: 0 4px; }
+.gsw { flex: none; width: 14px; height: 14px; border-radius: 4px; border: 0; background: var(--gc); cursor: pointer; padding: 0; margin: 0 4px; }
+.gtog { flex: none; width: 24px; height: 28px; border: 0; background: none; cursor: pointer; display: grid; place-items: center; border-radius: 8px; }
+.gtog::before { content: ""; width: 6px; height: 6px; border: solid var(--ink-3); border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px, -1px); }
+.grp.collapsed .gtog::before { transform: rotate(-45deg); }
+.gdel { flex: none; border: 0; background: none; color: var(--ink-3); cursor: pointer; padding: 0 6px; height: 28px; border-radius: 8px; font-size: 0.78rem; }
+.gdel:hover { color: var(--bad); }
+
+.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.items:empty { min-height: 36px; border: 1px dashed var(--line); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.items:empty::before { content: "Drop jobs here"; font-size: 0.78rem; color: var(--ink-3); }
+
+.row { display: flex; flex-wrap: wrap; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.row.sel { border-color: var(--accent); background: var(--panel-3); }
+.row.dragging { border-color: var(--accent); }
+.grip { flex: none; width: 18px; border: 0; border-radius: 11px 0 0 11px; background-color: transparent; background-image: radial-gradient(circle, var(--ink-3) 1.3px, transparent 1.5px); background-size: 6px 8px; background-position: center; cursor: grab; touch-action: none; padding: 0; opacity: 0.7; }
+.grip:hover { opacity: 1; }
+.grip:active { cursor: grabbing; }
+.ggrip { border-radius: 8px; height: 28px; width: 16px; }
+.chip { flex: 1; min-width: 0; background: none; border: 0; text-align: left; padding: 9px 12px 9px 6px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-radius: 12px; }
+.c1 { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 0.98rem; min-width: 0; }
+.c1 .co { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c1 .pay { margin-left: auto; font-weight: 400; font-size: 0.84rem; color: var(--ink-2); flex: none; }
+.c2 { font-size: 0.76rem; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); display: inline-block; flex: none; }
+.dot.good { background: var(--good); } .dot.warn { background: var(--warn); } .dot.acc { background: var(--accent); } .dot.bad { background: var(--bad); }
+
+.rowcm { flex: 0 0 100%; padding: 0 12px 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rcm-add { align-self: flex-start; background: none; border: 0; padding: 2px 0; color: var(--ink-3); font-size: 0.78rem; cursor: pointer; }
+.rcm-add:hover { color: var(--accent); }
+.rcm-prev { background: none; border: 0; padding: 0; text-align: left; color: var(--ink-2); font-size: 0.78rem; cursor: pointer; display: flex; gap: 8px; min-width: 0; }
+.rcm-prev span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.rcm-prev b { font-weight: 500; color: var(--ink-3); flex: none; }
+.rthread { display: flex; flex-direction: column; gap: 5px; border-top: 1px solid var(--line); padding-top: 6px; }
+.cm { display: flex; justify-content: space-between; gap: 8px; font-size: 0.8rem; color: var(--ink-2); }
+.cm small { color: var(--ink-3); margin-left: 6px; }
+.cmx { flex: none; background: none; border: 0; color: var(--ink-3); cursor: pointer; padding: 0 4px; }
+.cmx:hover { color: var(--bad); }
+.rcmform { display: flex; gap: 6px; }
+.rcmform input { height: 30px; font-size: 0.82rem; padding: 0 8px; }
+.rcmform button { height: 30px; padding: 0 10px; font-size: 0.78rem; }
+.emptyl { padding: 12px 4px; color: var(--ink-2); font-size: 0.9rem; margin: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<aside class="rail" aria-label="Job tracker">
+  <form id="addForm" class="addbox" autocomplete="off">
+    <input id="newCompany" type="text" maxlength="60" placeholder="Company" aria-label="Company">
+    <div class="addrow">
+      <input id="newRole" type="text" maxlength="80" placeholder="Role title" aria-label="Role title">
+      <button class="btn" type="submit">Add</button>
+    </div>
+  </form>
+  <div class="railbar"><button class="btn ghost" id="newGroup" type="button">New group</button></div>
+  <p class="note" id="dragHint"></p>
+  <div id="jobList" class="list"></div>
+  <div class="sr-only" id="live" aria-live="polite"></div>
+</aside>
+
+<script>
+(function () {
+  var KEY = "job-tracker-rail-v1";
+  var PALETTE = ["#3fa2f2", "#f59e0b", "#4ade80", "#f472b6", "#a78bfa", "#2dd4bf", "#fb7185", "#facc15"];
+  var STAGES = ["Saved", "Applying", "Applied", "Interviewing", "Offer", "Rejected"];
+  var STAGE_DOT = { "Saved": "", "Applying": "warn", "Applied": "acc", "Interviewing": "good", "Offer": "good", "Rejected": "bad" };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function nowHm() { var d = new Date(); return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+  function pay(k) { return k > 0 ? "$" + k + "K/yr" : "no pay"; }
+
+  function seed() {
+    var col = { id: uid(), name: "Columbus", color: PALETTE[0], collapsed: false };
+    var rem = { id: uid(), name: "Remote", color: PALETTE[1], collapsed: false };
+    function job(company, role, stage, payK, loc, group, comments) {
+      return { id: uid(), company: company, role: role, stage: stage, pay: payK, loc: loc, group: group, comments: comments || [] };
+    }
+    return {
+      groups: [col, rem],
+      jobs: [
+        job("Burgess & Niple (example)", "BIM Coordinator", "Interviewing", 84, "Columbus, OH", col.id,
+          [{ id: uid(), text: "Panel interview Thursday. Bring the Civil 3D sample.", at: "16:20" }]),
+        job("Studio Lumen (example)", "3D Visualization Artist", "Applied", 52, "Columbus, OH", col.id, []),
+        job("Adobe (example)", "Sr Designer, Frame.io", "Saved", 150, "Remote", rem.id,
+          [{ id: uid(), text: "Tailor the motion reel before applying.", at: "09:12" }]),
+        job("TimelyCare (example)", "Senior Product Designer", "Applying", 114, "Remote", rem.id, [])
+      ]
+    };
+  }
+
+  var state = null;
+  try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
+  if (!state || !Array.isArray(state.jobs) || !Array.isArray(state.groups)) state = seed();
+
+  var ui = { cmFor: null, cmOpen: {}, sel: null, armedG: null };
+  var drag = null;
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function findGroup(id) { for (var i = 0; i < state.groups.length; i++) if (state.groups[i].id === id) return state.groups[i]; return null; }
+  function jobById(id) { for (var i = 0; i < state.jobs.length; i++) if (state.jobs[i].id === id) return state.jobs[i]; return null; }
+
+  function rowHtml(j) {
+    var id = esc(j.id), n = (j.comments || []).length, sel = ui.sel === j.id;
+    var dot = '<i class="dot ' + (STAGE_DOT[j.stage] || "") + '"></i>';
+    var cm = '<div class="rowcm">';
+    if (n) {
+      if (ui.cmOpen[j.id]) {
+        cm += '<div class="rthread">' + j.comments.slice().reverse().map(function (c) {
+          return '<div class="cm"><span>' + esc(c.text) + '<small>' + esc(c.at) + '</small></span><button type="button" class="cmx" data-cmdel="' + id + '|' + esc(c.id) + '" aria-label="Delete comment">×</button></div>';
+        }).join("") + '<button type="button" class="rcm-prev" data-cmtoggle="' + id + '" aria-expanded="true"><span>Hide comments</span></button></div>';
+      } else {
+        cm += '<button type="button" class="rcm-prev" data-cmtoggle="' + id + '" aria-expanded="false"><span>' + esc(j.comments[n - 1].text) + '</span><b>' + n + (n === 1 ? " comment" : " comments") + '</b></button>';
+      }
+    }
+    if (ui.cmFor === j.id) {
+      cm += '<form class="rcmform" data-cmform="' + id + '" autocomplete="off"><input type="text" placeholder="Add a comment" aria-label="Comment on ' + esc(j.company) + '"><button class="btn ghost" type="submit">Post</button></form>';
+    } else {
+      cm += '<button type="button" class="rcm-add" data-cmadd="' + id + '">+ Add comment</button>';
+    }
+    cm += "</div>";
+    return '<li class="row' + (sel ? " sel" : "") + '" data-id="' + id + '">' +
+      '<button type="button" class="grip" data-grip="' + id + '" aria-label="Reorder ' + esc(j.company) + '"></button>' +
+      '<button type="button" class="chip" data-sel="' + id + '">' +
+        '<span class="c1">' + dot + '<span class="co">' + esc(j.company || "New job") + '</span><span class="pay mono">' + pay(j.pay) + '</span></span>' +
+        '<span class="c2">' + esc(j.stage) + ' · ' + esc(j.role || "No role yet") + (j.loc ? " · " + esc(j.loc) : "") + '</span>' +
+      '</button>' + cm + "</li>";
+  }
+
+  function render() {
+    var hasG = state.groups.length > 0;
+    var html = "";
+    state.groups.forEach(function (g) {
+      var items = state.jobs.filter(function (j) { return j.group === g.id; });
+      var gid = esc(g.id), collapsed = !!g.collapsed;
+      html += '<section class="grp colored' + (collapsed ? " collapsed" : "") + '" data-gid="' + gid + '" style="--gc:' + esc(g.color) + '">' +
+        '<div class="gh">' +
+          '<button type="button" class="grip ggrip" data-ggrip="' + gid + '" aria-label="Reorder group ' + esc(g.name) + '"></button>' +
+          '<button type="button" class="gtog" data-gtoggle="' + gid + '" aria-expanded="' + (!collapsed) + '" aria-label="Toggle ' + esc(g.name) + '"></button>' +
+          '<button type="button" class="gsw" data-gcolor="' + gid + '" aria-label="Change group color" title="Change color"></button>' +
+          '<input class="gname" data-gname="' + gid + '" value="' + esc(g.name) + '" aria-label="Group name">' +
+          '<span class="gcount mono">' + items.length + '</span>' +
+          '<button type="button" class="gdel" data-gdel="' + gid + '" aria-label="Delete group">' + (ui.armedG === g.id ? "Sure?" : "×") + '</button>' +
+        '</div>' +
+        '<ul class="items" data-gid="' + gid + '">' + items.map(rowHtml).join("") + '</ul>' +
+      '</section>';
+    });
+    var loose = state.jobs.filter(function (j) { return !j.group || !findGroup(j.group); });
+    if (hasG) {
+      html += '<section class="grp plain" data-gid=""><div class="gh"><span class="gstatic">Ungrouped</span><span class="gcount mono">' + loose.length + '</span></div>' +
+        '<ul class="items" data-gid="">' + loose.map(rowHtml).join("") + '</ul></section>';
+    } else {
+      html += '<ul class="items" data-gid="">' + state.jobs.map(rowHtml).join("") + '</ul>';
+    }
+    if (!state.jobs.length && !hasG) html = '<p class="emptyl">No applications yet. Add a company and role above.</p>';
+    $("jobList").innerHTML = html;
+    $("dragHint").textContent = "Drag the grips to reorder jobs and groups, or focus a grip and use the arrow keys.";
+  }
+
+  // Add job
+  $("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var company = $("newCompany").value.trim(), role = $("newRole").value.trim();
+    if (!company) return;
+    state.jobs.push({ id: uid(), company: company, role: role, stage: "Saved", pay: 0, loc: "", group: state.groups.length ? state.groups[0].id : "", comments: [] });
+    save();
+    $("newCompany").value = "";
+    $("newRole").value = "";
+    render();
+  });
+
+  // New group
+  $("newGroup").addEventListener("click", function () {
+    var used = {};
+    state.groups.forEach(function (g) { used[g.color] = 1; });
+    var col = PALETTE.filter(function (c) { return !used[c]; })[0] || PALETTE[state.groups.length % PALETTE.length];
+    var g = { id: uid(), name: "Group " + (state.groups.length + 1), color: col, collapsed: false };
+    state.groups.unshift(g);
+    save(); render();
+    var inp = document.querySelector('[data-gname="' + g.id + '"]');
+    if (inp) { inp.focus(); inp.select(); }
+  });
+
+  // Rename group
+  $("jobList").addEventListener("input", function (e) {
+    var id = e.target.getAttribute("data-gname");
+    if (!id) return;
+    var g = findGroup(id);
+    if (g) { g.name = e.target.value; save(); }
+  });
+
+  // Clicks
+  $("jobList").addEventListener("click", function (e) {
+    var b;
+    if ((b = e.target.closest("[data-sel]"))) { ui.sel = b.getAttribute("data-sel"); render(); return; }
+    if ((b = e.target.closest("[data-cmadd]"))) { ui.cmFor = b.getAttribute("data-cmadd"); render(); var i = document.querySelector("[data-cmform] input"); if (i) i.focus(); return; }
+    if ((b = e.target.closest("[data-cmtoggle]"))) { var k = b.getAttribute("data-cmtoggle"); ui.cmOpen[k] = !ui.cmOpen[k]; render(); return; }
+    if ((b = e.target.closest("[data-cmdel]"))) {
+      var p = b.getAttribute("data-cmdel").split("|"), jb = jobById(p[0]);
+      if (jb) { jb.comments = jb.comments.filter(function (c) { return c.id !== p[1]; }); save(); render(); }
+      return;
+    }
+    if ((b = e.target.closest("[data-gcolor]"))) {
+      var cg = findGroup(b.getAttribute("data-gcolor"));
+      if (cg) { var idx = PALETTE.indexOf(cg.color); cg.color = PALETTE[(idx + 1) % PALETTE.length]; save(); render(); }
+      return;
+    }
+    if ((b = e.target.closest("[data-gtoggle]"))) {
+      var tg = findGroup(b.getAttribute("data-gtoggle"));
+      if (tg) { tg.collapsed = !tg.collapsed; save(); render(); }
+      return;
+    }
+    if ((b = e.target.closest("[data-gdel]"))) {
+      var id = b.getAttribute("data-gdel");
+      if (ui.armedG === id) {
+        state.jobs.forEach(function (j) { if (j.group === id) j.group = ""; });
+        state.groups = state.groups.filter(function (g) { return g.id !== id; });
+        ui.armedG = null; save(); render();
+      } else {
+        ui.armedG = id; render();
+        setTimeout(function () { if (ui.armedG === id) { ui.armedG = null; render(); } }, 3000);
+      }
+    }
+  });
+
+  // Comment submit
+  $("jobList").addEventListener("submit", function (e) {
+    var f = e.target, id = f.getAttribute("data-cmform");
+    if (!id) return;
+    e.preventDefault();
+    var txt = f.querySelector("input").value.trim(), jb = jobById(id);
+    if (!jb || !txt) return;
+    jb.comments.push({ id: uid(), text: txt, at: nowHm() });
+    ui.cmFor = null; save(); render();
+  });
+
+  // Drag to reorder
+  function commitDom() {
+    var secs = [].slice.call($("jobList").querySelectorAll(".grp")), gmap = {}, jmap = {}, ng = [], pairs = [];
+    state.groups.forEach(function (g) { gmap[g.id] = g; });
+    state.jobs.forEach(function (j) { jmap[j.id] = j; });
+    secs.forEach(function (el) {
+      var gid = el.getAttribute("data-gid");
+      if (gid && gmap[gid]) ng.push(gmap[gid]);
+      [].forEach.call(el.querySelectorAll(".items > li[data-id]"), function (li) {
+        var j = jmap[li.getAttribute("data-id")];
+        if (j) pairs.push([j, gid]);
+      });
+    });
+    if (pairs.length !== state.jobs.length || ng.length !== state.groups.length) return false;
+    state.groups = ng;
+    state.jobs = pairs.map(function (p) { p[0].group = p[1]; return p[0]; });
+    return true;
+  }
+
+  var list = $("jobList");
+  list.addEventListener("pointerdown", function (e) {
+    if (drag) return;
+    var g = e.target.closest("[data-grip]"), gg = e.target.closest("[data-ggrip]");
+    if (!g && !gg) return;
+    e.preventDefault();
+    if (g) {
+      var li = g.closest("li");
+      drag = { type: "job", el: li, pid: e.pointerId, moved: false };
+      li.classList.add("dragging"); list.classList.add("dragmode");
+    } else {
+      var sec = gg.closest(".grp");
+      drag = { type: "group", el: sec, pid: e.pointerId, moved: false };
+      sec.classList.add("dragging"); list.classList.add("dragmode", "groupdrag");
+    }
+    try { list.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+
+  list.addEventListener("pointermove", function (e) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    var y = e.clientY, r = list.getBoundingClientRect();
+    if (y < r.top + 36) list.scrollTop -= 12; else if (y > r.bottom - 36) list.scrollTop += 12;
+    if (drag.type === "job") {
+      var secs = [].slice.call(list.querySelectorAll(".grp"));
+      if (!secs.length) return;
+      var target = null;
+      for (var i = 0; i < secs.length; i++) {
+        var b = secs[i].getBoundingClientRect();
+        if (y >= b.top && y <= b.bottom) { target = secs[i]; break; }
+      }
+      if (!target) target = y < secs[0].getBoundingClientRect().top ? secs[0] : secs[secs.length - 1];
+      var ul = target.querySelector(".items");
+      var rows = [].filter.call(ul.children, function (x) { return x !== drag.el; });
+      var before = null;
+      for (var k = 0; k < rows.length; k++) {
+        var rb = rows[k].getBoundingClientRect();
+        if (y < rb.top + rb.height / 2) { before = rows[k]; break; }
+      }
+      if (before) { if (drag.el.nextElementSibling !== before || drag.el.parentNode !== ul) { ul.insertBefore(drag.el, before); drag.moved = true; } }
+      else if (ul.lastElementChild !== drag.el || drag.el.parentNode !== ul) { ul.appendChild(drag.el); drag.moved = true; }
+    } else {
+      var others = [].filter.call(list.querySelectorAll(".grp"), function (x) { return x !== drag.el && x.getAttribute("data-gid") !== ""; });
+      var bf = null;
+      for (var m = 0; m < others.length; m++) {
+        var ob = others[m].getBoundingClientRect();
+        if (y < ob.top + ob.height / 2) { bf = others[m]; break; }
+      }
+      var ref = bf || list.querySelector('.grp[data-gid=""]');
+      if (ref) { if (drag.el.nextElementSibling !== ref) { list.insertBefore(drag.el, ref); drag.moved = true; } }
+      else if (list.lastElementChild !== drag.el) { list.appendChild(drag.el); drag.moved = true; }
+    }
+  });
+
+  function endDrag(e, cancel) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    var d = drag; drag = null;
+    d.el.classList.remove("dragging");
+    list.classList.remove("dragmode", "groupdrag");
+    try { list.releasePointerCapture(e.pointerId); } catch (err) {}
+    if (cancel || !d.moved) { render(); return; }
+    if (commitDom()) save();
+    render();
+  }
+  list.addEventListener("pointerup", function (e) { endDrag(e, false); });
+  list.addEventListener("pointercancel", function (e) { endDrag(e, true); });
+
+  // Arrow keys reorder a focused grip
+  list.addEventListener("keydown", function (e) {
+    var k = e.key;
+    if (k !== "ArrowUp" && k !== "ArrowDown") return;
+    var g = e.target.closest && e.target.closest("[data-grip]");
+    if (!g) return;
+    e.preventDefault();
+    var id = g.getAttribute("data-grip");
+    var order = state.jobs.map(function (x) { return x.id; });
+    var i = order.indexOf(id), j = i + (k === "ArrowUp" ? -1 : 1);
+    if (i < 0 || j < 0 || j >= order.length) return;
+    var t = state.jobs[i]; state.jobs[i] = state.jobs[j]; state.jobs[j] = t;
+    save(); render();
+    var ng = list.querySelector('[data-grip="' + id + '"]'); if (ng) ng.focus();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

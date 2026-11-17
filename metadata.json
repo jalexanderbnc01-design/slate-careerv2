@@ -1,0 +1,6 @@
+{
+  "name": "Career Engine",
+  "description": "Show live job postings around Columbus, Ohio on a map or list, ranked by personal creative fit, THC testing risk protection, pay, stress levels, and future value.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

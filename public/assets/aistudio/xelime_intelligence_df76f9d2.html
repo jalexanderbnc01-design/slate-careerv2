@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XELIME Intelligence — Powered by Slate AI</title>
+  <style>
+    :root {
+      --bg-base: #17191C;
+      --bg-panel: #222427;
+      --bg-elevated: #292C30;
+      --border: #35383C;
+      --text-primary: #F0F3F6;
+      --text-secondary: #9BA3AE;
+      --text-muted: #68707A;
+      --accent-green: #4ade80;
+      --accent-blue: #60a5fa;
+      --accent-amber: #f59e0b;
+      --accent-purple: #a78bfa;
+      --accent-red: #f87171;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Layout Shell */
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Top Header */
+    .top-bar {
+      height: 50px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      flex-shrink: 0;
+      gap: 12px;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--accent-green);
+      background: rgba(74, 222, 128, 0.1);
+      color: var(--accent-green);
+      display: grid;
+      place-items: center;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+
+    .brand-title {
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .brand-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .engine-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 6px var(--accent-green);
+    }
+
+    select.slate-select {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    select.slate-select:focus {
+      border-color: var(--accent-blue);
+    }
+
+    /* Main Workspace Columns */
+    .workspace-body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    /* Left Sidebar */
+    .sidebar-left {
+      width: 240px;
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .btn-new-chat {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .btn-new-chat:hover {
+      border-color: var(--accent-green);
+      background: #2f3338;
+    }
+
+    .nav-section-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      padding-left: 6px;
+    }
+
+    .nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 5px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 13px;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border-color: var(--border);
+      font-weight: 600;
+    }
+
+    .nav-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--bg-base);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .history-item {
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+
+    .history-item:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+
+    /* Center Stage */
+    .center-stage {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-base);
+      position: relative;
+    }
+
+    /* Mode Selector Strip */
+    .mode-bar {
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-base);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .mode-pill {
+      padding: 5px 11px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+
+    .mode-pill:hover {
+      color: var(--text-primary);
+      border-color: #4a4f55;
+    }
+
+    .mode-pill.active {
+      background: rgba(96, 165, 250, 0.14);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    /* Area Views */
+    .view-panel {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+    }
+
+    .view-panel.active {
+      display: flex;
+    }
+
+    /* Chat Scroll Area */
+    .chat-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* Welcome Hero */
+    .welcome-hero {
+      max-width: 680px;
+      margin: auto;
+      width: 100%;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .welcome-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-green);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .welcome-hero h1 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .welcome-question {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 28px;
+      font-style: italic;
+    }
+
+    .starter-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      text-align: left;
+    }
+
+    .starter-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+
+    .starter-card:hover {
+      border-color: var(--accent-blue);
+      background: var(--bg-elevated);
+    }
+
+    .starter-card-title {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .starter-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Chat Messages */
+    .msg {
+      max-width: 780px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .msg-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .level-tag {
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .level-1 { background: rgba(155, 163, 174, 0.15); color: var(--text-secondary); }
+    .level-2 { background: rgba(96, 165, 250, 0.18); color: var(--accent-blue); }
+    .level-3 { background: rgba(245, 158, 11, 0.18); color: var(--accent-amber); }
+
+    .msg-bubble {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 13.5px;
+    }
+
+    .msg.user .msg-bubble {
+      background: var(--bg-elevated);
+      border-color: #42474e;
+    }
+
+    /* Structured Intelligence Card inside Chat */
+    .intel-block {
+      margin-top: 10px;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .intel-col h4 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+
+    .intel-col ul {
+      padding-left: 16px;
+      font-size: 12px;
+      color: var(--text-primary);
+    }
+
+    .intel-col li {
+      margin-bottom: 4px;
+    }
+
+    /* Level 3 Execution Approval Card */
+    .exec-card {
+      margin-top: 10px;
+      background: rgba(245, 158, 11, 0.07);
+      border: 1px solid var(--accent-amber);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+
+    .exec-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-amber);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .exec-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .btn-approve {
+      background: var(--accent-green);
+      color: #0f1712;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .btn-reject {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Composer */
+    .composer-wrap {
+      padding: 14px 24px 18px;
+      background: var(--bg-base);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .composer-box {
+      max-width: 780px;
+      margin: 0 auto;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .composer-box:focus-within {
+      border-color: var(--accent-blue);
+    }
+
+    .composer-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      resize: none;
+      outline: none;
+      min-height: 38px;
+    }
+
+    .composer-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .composer-hints {
+      display: flex;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .btn-send {
+      background: var(--text-primary);
+      color: var(--bg-base);
+      border: none;
+      border-radius: 5px;
+      padding: 6px 14px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .btn-send:hover {
+      background: var(--accent-green);
+    }
+
+    /* Right Context Awareness Drawer */
+    .sidebar-right {
+      width: 300px;
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .context-card {
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    .context-card-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .skill-tag-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag-verified {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(74, 222, 128, 0.12);
+      border: 1px solid rgba(74, 222, 128, 0.35);
+      color: var(--accent-green);
+    }
+
+    .tag-developing {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: var(--accent-amber);
+    }
+
+    /* Secondary Views (Intelligence, Projects, Knowledge, Settings) */
+    .subview-container {
+      padding: 24px;
+      overflow-y: auto;
+      max-width: 920px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .subview-header {
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .subview-header h2 {
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .subview-header p {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .data-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+    }
+
+    .data-card h3 {
+      font-size: 14px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .meter-track {
+      height: 6px;
+      background: var(--bg-base);
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .meter-fill {
+      height: 100%;
+      background: var(--accent-green);
+    }
+
+    @media (max-width: 1024px) {
+      .sidebar-right { display: none; }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar-left { width: 190px; }
+      .starter-grid, .grid-2, .intel-block { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="top-bar">
+      <div class="brand-cluster">
+        <div class="brand-mark">X</div>
+        <span class="brand-title">XELIME INTELLIGENCE</span>
+        <span class="brand-sub">POWERED BY SLATE AI</span>
+      </div>
+
+      <div class="engine-controls">
+        <div class="status-pill" id="routing-badge">
+          <span class="status-dot"></span>
+          <span>LOCAL PREFERRED</span>
+        </div>
+        <select class="slate-select" id="model-selector" aria-label="Slate AI Model Selector">
+          <optgroup label="Local Runtime (Zero Cost)">
+            <option value="ollama:qwen2.5-coder">OLLAMA · qwen2.5-coder</option>
+            <option value="lmstudio:llama-3.1-8b">LM STUDIO · llama-3.1-8b</option>
+          </optgroup>
+          <optgroup label="Cloud Router (Approval Gated)">
+            <option value="gemini:gemini-3.5-flash-lite" selected>MODEL: GEMINI 3.5 FLASH</option>
+            <option value="alibaba:qwen3.7-max">ALIBABA · qwen3.7-max</option>
+            <option value="openrouter:claude-sonnet-4.5">OPENROUTER · claude-sonnet-4.5</option>
+          </optgroup>
+        </select>
+      </div>
+    </header>
+
+    <!-- Main 3-Column Body -->
+    <div class="workspace-body">
+      <!-- Left Navigation -->
+      <aside class="sidebar-left">
+        <button class="btn-new-chat" id="btn-new-chat">
+          <span>+ New Chat</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">⌘N</span>
+        </button>
+
+        <div>
+          <div class="nav-section-label">Command Center</div>
+          <nav class="nav-list" id="main-nav">
+            <div class="nav-item active" data-view="chat">
+              <span>Chat</span>
+              <span class="nav-badge" id="active-mode-badge">General</span>
+            </div>
+            <div class="nav-item" data-view="intelligence">
+              <span>Intelligence</span>
+              <span class="nav-badge">4 Gaps</span>
+            </div>
+            <div class="nav-item" data-view="projects">
+              <span>Projects</span>
+              <span class="nav-badge" id="project-count-badge">3</span>
+            </div>
+            <div class="nav-item" data-view="knowledge">
+              <span>Knowledge</span>
+              <span class="nav-badge">12</span>
+            </div>
+            <div class="nav-item" data-view="settings">
+              <span>Settings</span>
+            </div>
+          </nav>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow-y:auto;">
+          <div class="nav-section-label">Conversations</div>
+          <div id="conversation-list">
+            <div class="history-item">CAD &amp; BIM Role Qualification</div>
+            <div class="history-item">XELIME Studio Pricing Tier</div>
+            <div class="history-item">Revit Portfolio Roadmap</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center Workspace -->
+      <main class="center-stage">
+        <!-- 6 Specialized AI Modes (Persistent across Chat) -->
+        <div class="mode-bar" id="mode-bar">
+          <button class="mode-pill active" data-mode="General Assistant">General Assistant</button>
+          <button class="mode-pill" data-mode="Career Intelligence">Career Intelligence</button>
+          <button class="mode-pill" data-mode="Skills Intelligence">Skills Intelligence</button>
+          <button class="mode-pill" data-mode="Design Intelligence">Design Intelligence</button>
+          <button class="mode-pill" data-mode="Business Intelligence">Business Intelligence</button>
+          <button class="mode-pill" data-mode="Project Intelligence">Project Intelligence</button>
+        </div>
+
+        <!-- VIEW 1: CHAT -->
+        <section class="view-panel active" id="view-chat">
+          <div class="chat-scroll" id="chat-stream">
+            <!-- Welcome Screen -->
+            <div class="welcome-hero" id="welcome-screen">
+              <div class="welcome-eyebrow">XELIME INTELLIGENCE ENGINE</div>
+              <h1>Welcome to XELIME</h1>
+              <p class="welcome-question">"What can I accomplish with what I know, and what should I do next?"</p>
+
+              <div class="starter-grid">
+                <div class="starter-card" data-prompt="What jobs can I qualify for right now based on my verified skills?" data-mode="Career Intelligence">
+                  <div class="starter-card-title">
+                    <span>Career Analysis</span>
+                    <span class="level-tag level-2">Level 2</span>
+                  </div>
+                  <div class="starter-card-desc">Match verified AutoCAD &amp; Civil 3D experience against active market roles.</div>
+                </div>
+
+                <div class="starter-card" data-prompt="Compare my current skills against Architectural Designer job requirements." data-mode="Skills Intelligence">
+                  <div class="starter-card-title">
+                    <span>Skills Analysis</span>
+                    <span class="level-tag level-2">Level 2</span>
+                  </div>
+                  <div class="starter-card-desc">Audit demonstrated vs. developing proficiency and identify critical gaps.</div>
+                </div>
+
+                <div class="starter-card" data-prompt="Create a portfolio project based on my architectural visualization skills." data-mode="Design Intelligence">
+                  <div class="starter-card-title">
+                    <span>Design Assistant</span>
+                    <span class="level-tag level-3">Level 3</span>
+                  </div>
+                  <div class="starter-card-desc">Structure CAD, BIM, and 3D visualization deliverables into portfolio proof.</div>
+                </div>
+
+                <div class="starter-card" data-prompt="Outline a freelance service package and pricing tier for CAD drafting and 3D visualization." data-mode="Business Intelligence">
+                  <div class="starter-card-title">
+                    <span>Business Strategy</span>
+                    <span class="level-tag level-3">Level 3</span>
+                  </div>
+                  <div class="starter-card-desc">Turn technical abilities into scoped client proposals and revenue tiers.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Composer -->
+          <div class="composer-wrap">
+            <div class="composer-box">
+              <textarea
+                class="composer-input"
+                id="composer-input"
+                rows="2"
+                placeholder="Ask XELIME anything... (Mode: General Assistant — conversation history stays intact when switching modes)"
+              ></textarea>
+              <div class="composer-footer">
+                <div class="composer-hints">
+                  <span>L1: Chat</span>
+                  <span>•</span>
+                  <span>L2: Gap Analysis</span>
+                  <span>•</span>
+                  <span>L3: Approved Actions</span>
+                </div>
+                <button class="btn-send" id="btn-send">Send ↵</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 2: INTELLIGENCE -->
+        <section class="view-panel" id="view-intelligence">
+          <div class="subview-container">
+            <div class="subview-header">
+              <h2>Context-Aware Skill &amp; Opportunity Intelligence</h2>
+              <p>Separating verified proof from developing claims and active market demand.</p>
+            </div>
+            <div class="grid-2">
+              <div class="data-card">
+                <h3><span>Verified &amp; Demonstrated</span><span class="level-tag level-2">Proof Backed</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">Backed by completed CAD files, technical drawings, and studio projects.</p>
+                <div class="skill-tag-wrap">
+                  <span class="tag-verified">AutoCAD (2D/3D)</span>
+                  <span class="tag-verified">Civil 3D</span>
+                  <span class="tag-verified">Technical Drafting</span>
+                  <span class="tag-verified">3D Visualization</span>
+                  <span class="tag-verified">UI/UX Prototyping</span>
+                </div>
+              </div>
+              <div class="data-card">
+                <h3><span>Developing / Claimed</span><span class="level-tag level-3">Evidence Needed</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">In progress — building portfolio artifacts unlocks senior design roles.</p>
+                <div class="skill-tag-wrap">
+                  <span class="tag-developing">Autodesk Revit (BIM)</span>
+                  <span class="tag-developing">Construction Documentation</span>
+                  <span class="tag-developing">Blender Python Scripting</span>
+                </div>
+              </div>
+              <div class="data-card">
+                <h3><span>Immediate Qualifying Roles</span><span style="color:var(--accent-green);font-family:var(--font-mono);font-size:12px;">92% Match</span></h3>
+                <ul style="padding-left:18px;font-size:13px;margin-top:8px;color:var(--text-secondary);">
+                  <li><strong style="color:var(--text-primary)">CAD Drafter</strong> — Direct match with verified AutoCAD precision.</li>
+                  <li><strong style="color:var(--text-primary)">Civil CAD Technician</strong> — Qualified via Civil 3D grading &amp; layout artifacts.</li>
+                  <li><strong style="color:var(--text-primary)">Junior BIM Technician</strong> — Entry path while Revit proficiency matures.</li>
+                </ul>
+              </div>
+              <div class="data-card">
+                <h3><span>Next High-Leverage Action</span><span style="color:var(--accent-blue);font-family:var(--font-mono);font-size:12px;">+18% Rate Lift</span></h3>
+                <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">
+                  Complete one full architectural sheet set in <strong>Revit</strong> and attach it to Knowledge to transition from <em>CAD Technician</em> to <em>Architectural Designer</em> eligibility.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 3: PROJECTS -->
+        <section class="view-panel" id="view-projects">
+          <div class="subview-container">
+            <div class="subview-header">
+              <h2>Active Projects &amp; Deliverables</h2>
+              <p>Managed across Career Engine and XELIME Studio. Level 3 AI actions write directly here upon approval.</p>
+            </div>
+            <div class="grid-2" id="projects-grid">
+              <div class="data-card">
+                <h3><span>Revit BIM Proof-of-Work Set</span><span class="nav-badge">In Progress</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);">Architectural floor plans, sections, and schedules to verify BIM proficiency.</p>
+                <div class="meter-track"><div class="meter-fill" style="width:65%"></div></div>
+                <small style="color:var(--text-muted);font-family:var(--font-mono);">Milestone 2/3 · Due Next Week</small>
+              </div>
+              <div class="data-card">
+                <h3><span>XELIME Studio Service Catalog</span><span class="nav-badge">Active</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);">Productized CAD drafting &amp; architectural rendering packages for local contractors.</p>
+                <div class="meter-track"><div class="meter-fill" style="width:80%"></div></div>
+                <small style="color:var(--text-muted);font-family:var(--font-mono);">Milestone 4/5 · Pricing Finalized</small>
+              </div>
+              <div class="data-card">
+                <h3><span>Slate OS Provider Router</span><span class="nav-badge">Active</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);">Unified local + cloud model routing with SQLite token ledger.</p>
+                <div class="meter-track"><div class="meter-fill" style="width:90%"></div></div>
+                <small style="color:var(--text-muted);font-family:var(--font-mono);">Core Engine Ready</small>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 4: KNOWLEDGE -->
+        <section class="view-panel" id="view-knowledge">
+          <div class="subview-container">
+            <div class="subview-header">
+              <h2>Connected Knowledge &amp; Evidence Vault</h2>
+              <p>Resumes, CAD templates, project notes, and market benchmarks indexed for XELIME Intelligence.</p>
+            </div>
+            <div class="grid-2">
+              <div class="data-card">
+                <h3><span>Master_Resume_2026_CAD.pdf</span><span class="tag-verified">Indexed</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);">Extracted 6 verified technical skills and 3 project histories.</p>
+              </div>
+              <div class="data-card">
+                <h3><span>Civil3D_Site_Grading_Sample.dwg</span><span class="tag-verified">Evidence</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);">Validates Civil CAD Technician qualification claims.</p>
+              </div>
+              <div class="data-card">
+                <h3><span>Columbus_OH_AEC_Market_Rates.md</span><span class="tag-verified">Benchmark</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);">Local hourly &amp; salaried compensation benchmarks for CAD/BIM roles.</p>
+              </div>
+              <div class="data-card">
+                <h3><span>XELIME_Governance_OTDA.md</span><span class="tag-verified">Framework</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);">Observe-Think-Decide-Act decision protocol for studio execution.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 5: SETTINGS -->
+        <section class="view-panel" id="view-settings">
+          <div class="subview-container">
+            <div class="subview-header">
+              <h2>Slate AI Engine &amp; Provider Configuration</h2>
+              <p>Swap underlying models without changing XELIME Intelligence's memory, modes, or tools.</p>
+            </div>
+            <div class="grid-2">
+              <div class="data-card">
+                <h3><span>Routing Policy</span><span class="tag-verified">Active</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">Controls when prompts stay on localhost vs. requesting cloud approval.</p>
+                <select class="slate-select" style="width:100%;padding:8px;" id="settings-routing-select">
+                  <option value="LOCAL PREFERRED">LOCAL PREFERRED (Local first; cloud prompts ask approval)</option>
+                  <option value="LOCAL ONLY">LOCAL ONLY (Ollama &amp; LM Studio strictly)</option>
+                  <option value="CLOUD MANUAL">CLOUD MANUAL (Explicit provider approval per send)</option>
+                </select>
+              </div>
+              <div class="data-card">
+                <h3><span>Execution Guardrails (Level 3)</span><span class="tag-developing">Approval Gated</span></h3>
+                <p style="font-size:12px;color:var(--text-secondary);">
+                  Creating projects, modifying skill records, or generating proposals always displays an inline confirmation card before committing changes.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Right Context Awareness Panel -->
+      <aside class="sidebar-right">
+        <div class="context-card">
+          <div class="context-card-title">
+            <span>Context Awareness</span>
+            <span style="color:var(--accent-green)">LIVE</span>
+          </div>
+          <p style="font-size:12px;color:var(--text-secondary);">
+            Active Mode: <strong id="ctx-mode-label" style="color:var(--text-primary)">General Assistant</strong>
+          </p>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+            History persists seamlessly across all 6 modes.
+          </p>
+        </div>
+
+        <div class="context-card">
+          <div class="context-card-title">
+            <span>Verified Proof</span>
+            <span>5</span>
+          </div>
+          <div class="skill-tag-wrap">
+            <span class="tag-verified">AutoCAD</span>
+            <span class="tag-verified">Civil 3D</span>
+            <span class="tag-verified">Drafting</span>
+            <span class="tag-verified">3D Vis</span>
+            <span class="tag-verified">UI/UX</span>
+          </div>
+        </div>
+
+        <div class="context-card">
+          <div class="context-card-title">
+            <span>Developing Skills</span>
+            <span>2</span>
+          </div>
+          <div class="skill-tag-wrap">
+            <span class="tag-developing">Revit BIM</span>
+            <span class="tag-developing">CD Sets</span>
+          </div>
+        </div>
+
+        <div class="context-card">
+          <div class="context-card-title">
+            <span>Central Objective</span>
+          </div>
+          <p style="font-size:12px;color:var(--text-secondary);">
+            Convert verified CAD &amp; design skills into immediate income while building Revit proof for Architectural Designer roles.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const state = {
+        activeView: 'chat',
+        activeMode: 'General Assistant',
+        messages: [],
+        projectsCount: 3
+      };
+
+      const chatStream = document.getElementById('chat-stream');
+      const welcomeScreen = document.getElementById('welcome-screen');
+      const composerInput = document.getElementById('composer-input');
+      const modelSelector = document.getElementById('model-selector');
+
+      // 1. Navigation Switching (5 Areas)
+      document.querySelectorAll('#main-nav .nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const view = item.dataset.view;
+          state.activeView = view;
+
+          document.querySelectorAll('#main-nav .nav-item').forEach(n => n.classList.remove('active'));
+          item.classList.add('active');
+
+          document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+          document.getElementById(`view-${view}`).classList.add('active');
+        });
+      });
+
+      // 2. Mode Switching (6 Modes - Preserves Conversation History)
+      function setMode(modeName) {
+        state.activeMode = modeName;
+        document.querySelectorAll('.mode-pill').forEach(pill => {
+          pill.classList.toggle('active', pill.dataset.mode === modeName);
+        });
+        document.getElementById('active-mode-badge').textContent = modeName.replace(' Intelligence', '').replace(' Assistant', '');
+        document.getElementById('ctx-mode-label').textContent = modeName;
+        composerInput.placeholder = `Ask XELIME anything... (Mode: ${modeName} — history preserved)`;
+      }
+
+      document.querySelectorAll('.mode-pill').forEach(pill => {
+        pill.addEventListener('click', () => setMode(pill.dataset.mode));
+      });
+
+      // 3. Routing Policy Sync
+      const settingsRouting = document.getElementById('settings-routing-select');
+      if (settingsRouting) {
+        settingsRouting.addEventListener('change', (e) => {
+          const badgeText = document.querySelector('#routing-badge span:last-child');
+          if (badgeText) badgeText.textContent = e.target.value;
+        });
+      }
+
+      // 4. Smart Response Generator (Simulates Level 1, Level 2, and Level 3)
+      function buildAssistantResponse(promptText, mode) {
+        const lower = promptText.toLowerCase();
+
+        // Level 2: Career / Qualification Analysis
+        if (lower.includes('qualify') || lower.includes('job') || mode === 'Career Intelligence') {
+          return {
+            level: 2,
+            levelLabel: 'Level 2 · Intelligence',
+            html: `
+              <p>Based on your <strong>verified AutoCAD and Civil 3D experience</strong>, you immediately qualify for:</p>
+              <ol style="padding-left:18px;margin:8px 0;">
+                <li><strong>CAD Drafter</strong> — Direct match with your demonstrated 2D/3D precision drafting.</li>
+                <li><strong>Civil CAD Technician</strong> — Backed by your Civil 3D site layout evidence.</li>
+                <li><strong>CAD Design Technician</strong> — Strong fit combining drafting with 3D visualization.</li>
+                <li><strong>Junior BIM Technician</strong> — Accessible entry point while transitioning into BIM workflows.</li>
+              </ol>
+              <p style="color:var(--text-secondary);font-size:12.5px;">
+                Your developing <strong>Revit</strong> experience will unlock full <em>Architectural Designer</em> roles once you add one complete sheet set to Knowledge.
+              </p>
+            `
+          };
+        }
+
+        // Level 2: Skill Gap Analysis
+        if (lower.includes('compare') || lower.includes('gap') || lower.includes('skill') || mode === 'Skills Intelligence') {
+          return {
+            level: 2,
+            levelLabel: 'Level 2 · Gap Analysis',
+            html: `
+              <p>Comparison against <strong>Architectural Designer</strong> market requirements:</p>
+              <div class="intel-block">
+                <div class="intel-col">
+                  <h4 style="color:var(--accent-green)">Existing Qualifications</h4>
+                  <ul>
+                    <li>AutoCAD &amp; Technical Drafting (Verified)</li>
+                    <li>3D Visualization &amp; Spatial Layout</li>
+                    <li>Civil 3D Coordinate &amp; Grading Basics</li>
+                  </ul>
+                </div>
+                <div class="intel-col">
+                  <h4 style="color:var(--accent-amber)">Missing / Developing Gaps</h4>
+                  <ul>
+                    <li>Revit Family Creation &amp; BIM Scheduling</li>
+                    <li>Full Architectural CD (Construction Doc) Set</li>
+                    <li>Local Building Code Annotation Standards</li>
+                  </ul>
+                </div>
+              </div>
+            `
+          };
+        }
+
+        // Level 3: Execution with Confirmation
+        if (lower.includes('create') || lower.includes('portfolio') || lower.includes('proposal') || lower.includes('pricing') || mode === 'Design Intelligence' || mode === 'Business Intelligence') {
+          const isBusiness = lower.includes('pricing') || lower.includes('proposal') || mode === 'Business Intelligence';
+          const actionTitle = isBusiness
+            ? 'Create Freelance CAD & Visualization Service Proposal'
+            : 'Create Portfolio Project: Architectural Visualization & BIM Showcase';
+
+          return {
+            level: 3,
+            levelLabel: 'Level 3 · Execution Ready',
+            html: `
+              <p>I have structured an actionable deliverable based on your verified 3D visualization and drafting capabilities.</p>
+              <div class="exec-card" data-exec-title="${actionTitle}">
+                <div class="exec-header">
+                  <span>ACTION REQUIRES APPROVAL</span>
+                  <span>SLATE TOOL: PROJECTS.CREATE</span>
+                </div>
+                <div style="font-size:13px;font-weight:600;">${actionTitle}</div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
+                  Writes new project record with 3 milestones to <strong>Projects</strong> and links verified evidence tags.
+                </div>
+                <div class="exec-actions">
+                  <button class="btn-approve" onclick="window.approveXelimeAction(this)">Approve &amp; Execute</button>
+                  <button class="btn-reject" onclick="window.rejectXelimeAction(this)">Dismiss</button>
+                </div>
+              </div>
+            `
+          };
+        }
+
+        // Level 1: Conversation
+        return {
+          level: 1,
+          levelLabel: 'Level 1 · Conversation',
+          html: `
+            <p>Operating in <strong>${mode}</strong> via <code>${modelSelector.value}</code>.</p>
+            <p style="margin-top:6px;">I can analyze your verified AutoCAD/Civil 3D proof against job requirements (Level 2) or generate project records, skill updates, and client proposals for your approval (Level 3). What should we tackle next?</p>
+          `
+        };
+      }
+
+      // Global handlers for Level 3 Execution cards
+      window.approveXelimeAction = function(btn) {
+        const card = btn.closest('.exec-card');
+        const title = card.dataset.execTitle;
+        card.style.borderColor = 'var(--accent-green)';
+        card.style.background = 'rgba(74, 222, 128, 0.08)';
+        card.innerHTML = `
+          <div style="color:var(--accent-green);font-family:var(--font-mono);font-size:11px;font-weight:700;">
+            ✓ EXECUTED — ADDED TO PROJECTS
+          </div>
+          <div style="font-size:13px;margin-top:4px;">${title}</div>
+        `;
+
+        // Append to Projects view dynamically
+        state.projectsCount++;
+        document.getElementById('project-count-badge').textContent = state.projectsCount;
+        const grid = document.getElementById('projects-grid');
+        if (grid) {
+          grid.insertAdjacentHTML('afterbegin', `
+            <div class="data-card" style="border-color:var(--accent-green);">
+              <h3><span>${title}</span><span class="tag-verified">New</span></h3>
+              <p style="font-size:12px;color:var(--text-secondary);">Generated by XELIME Intelligence (Level 3 Execution).</p>
+              <div class="meter-track"><div class="meter-fill" style="width:15%"></div></div>
+              <small style="color:var(--text-muted);font-family:var(--font-mono);">Milestone 1/3 · Just Created</small>
+            </div>
+          `);
+        }
+      };
+
+      window.rejectXelimeAction = function(btn) {
+        const card = btn.closest('.exec-card');
+        card.style.opacity = '0.5';
+        card.innerHTML = `<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">Action cancelled by user.</div>`;
+      };
+
+      function appendMessage(role, html, metaLabel = '') {
+        if (welcomeScreen) welcomeScreen.style.display = 'none';
+
+        const msgEl = document.createElement('div');
+        msgEl.className = `msg ${role}`;
+        const modelName = modelSelector.options[modelSelector.selectedIndex].text;
+
+        msgEl.innerHTML = `
+          <div class="msg-meta">
+            <span>${role === 'user' ? 'YOU' : 'XELIME INTELLIGENCE'}</span>
+            <span>·</span>
+            <span>${state.activeMode}</span>
+            ${metaLabel ? `<span class="level-tag level-${role === 'user' ? '1' : metaLabel.charAt(6)}">${metaLabel}</span>` : ''}
+            ${role === 'assistant' ? `<span style="margin-left:auto;">${modelName}</span>` : ''}
+          </div>
+          <div class="msg-bubble">${html}</div>
+        `;
+
+        chatStream.appendChild(msgEl);
+        chatStream.scrollTop = chatStream.scrollHeight;
+      }
+
+      function handleSend(customPrompt = null) {
+        const text = (customPrompt !== null ? customPrompt : composerInput.value).trim();
+        if (!text) return;
+
+        // Ensure we are on the Chat view
+        document.querySelector('#main-nav .nav-item[data-view="chat"]').click();
+
+        appendMessage('user', `<p>${text.replace(/</g, '&lt;')}</p>`);
+        if (customPrompt === null) composerInput.value = '';
+
+        const reply = buildAssistantResponse(text, state.activeMode);
+        setTimeout(() => {
+          appendMessage('assistant', reply.html, reply.levelLabel);
+        }, 180);
+      }
+
+      // Wire Starter Cards
+      document.querySelectorAll('.starter-card').forEach(card => {
+        card.addEventListener('click', () => {
+          if (card.dataset.mode) setMode(card.dataset.mode);
+          handleSend(card.dataset.prompt);
+        });
+      });
+
+      // Wire Composer & New Chat
+      document.getElementById('btn-send').addEventListener('click', () => handleSend());
+      composerInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+        }
+      });
+
+      document.getElementById('btn-new-chat').addEventListener('click', () => {
+        chatStream.innerHTML = '';
+        chatStream.appendChild(welcomeScreen);
+        welcomeScreen.style.display = 'block';
+        document.querySelector('#main-nav .nav-item[data-view="chat"]').click();
+      });
+    })();
+  </script>
+</body>
+</html>

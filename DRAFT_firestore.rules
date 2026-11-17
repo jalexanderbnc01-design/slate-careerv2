@@ -1,0 +1,309 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 4.1: Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection probe allowed for signed-in users only
+    match /test/connection {
+      allow get: if isSignedIn();
+    }
+
+    // ==================== PRIMITIVES ====================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isVerified() && request.auth.uid == uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOptionalId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]*$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isBoundedString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isBoundedStringList(arr, maxItems, maxItemLen) {
+      return arr is list && arr.size() <= maxItems && (arr.size() == 0 || isBoundedString(arr[0], 0, maxItemLen));
+    }
+
+    function isValidCreateTimestampsAndVersion(data, uid) {
+      return data.uid == uid
+        && data.createdAt == request.time
+        && data.updatedAt == request.time
+        && data.version is int
+        && data.version == 1;
+    }
+
+    function isValidUpdateTimestampsAndVersion(uid) {
+      return incoming().uid == uid
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().version is int
+        && incoming().version == existing().version + 1;
+    }
+
+    // ==================== VALIDATION BLUEPRINTS ====================
+    function isValidJob(data, uid) {
+      return data.keys().hasAll(['uid', 'company', 'role', 'stage', 'pay', 'location', 'groupId', 'createdAt', 'updatedAt', 'version'])
+        && data.keys().hasOnly(['uid', 'company', 'role', 'stage', 'pay', 'location', 'groupId', 'order', 'isExample', 'createdAt', 'updatedAt', 'version'])
+        && data.uid == uid
+        && isBoundedString(data.company, 1, 200)
+        && isBoundedString(data.role, 0, 200)
+        && data.stage in ['Saved', 'Applying', 'Applied', 'Interviewing', 'Offer', 'Rejected']
+        && data.pay is number && data.pay >= 0 && data.pay <= 10000
+        && isBoundedString(data.location, 0, 200)
+        && isOptionalId(data.groupId)
+        && (!('order' in data) || (data.order is number && data.order >= 0 && data.order <= 100000))
+        && (!('isExample' in data) || data.isExample is bool)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.version is int && data.version >= 1;
+    }
+
+    function isValidGroup(data, uid) {
+      return data.keys().hasAll(['uid', 'name', 'color', 'collapsed', 'order', 'createdAt', 'updatedAt', 'version'])
+        && data.keys().hasOnly(['uid', 'name', 'color', 'collapsed', 'order', 'createdAt', 'updatedAt', 'version'])
+        && data.uid == uid
+        && isBoundedString(data.name, 1, 120)
+        && isBoundedString(data.color, 4, 32)
+        && data.collapsed is bool
+        && data.order is number && data.order >= 0 && data.order <= 100000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.version is int && data.version >= 1;
+    }
+
+    function isValidJobComment(data, uid, jobId) {
+      return data.keys().hasAll(['uid', 'jobId', 'text', 'createdAt', 'updatedAt', 'version'])
+        && data.keys().hasOnly(['uid', 'jobId', 'text', 'createdAt', 'updatedAt', 'version'])
+        && data.uid == uid
+        && data.jobId == jobId
+        && isBoundedString(data.text, 1, 2000)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.version is int && data.version >= 1;
+    }
+
+    function isValidTrackerEntry(data, uid) {
+      return data.keys().hasAll(['uid', 'companyName', 'jobTitle', 'lane', 'pay', 'thcRisk', 'score', 'applied', 'followUpDate', 'notes', 'createdAt', 'updatedAt', 'version'])
+        && data.keys().hasOnly([
+          'uid', 'companyName', 'jobTitle', 'lane', 'pay', 'thcRisk', 'score',
+          'applied', 'status', 'followUpDate', 'appliedDate', 'notes', 'nextStep',
+          'resumeVersion', 'portfolioPiece', 'portfolioAssetUrl', 'portfolioStoragePath',
+          'contactName', 'riskWarning', 'interviewPrep', 'packetData',
+          'createdAt', 'updatedAt', 'version'
+        ])
+        && data.uid == uid
+        && isBoundedString(data.companyName, 1, 200)
+        && isBoundedString(data.jobTitle, 1, 200)
+        && isBoundedString(data.lane, 0, 160)
+        && isBoundedString(data.pay, 0, 120)
+        && isBoundedString(data.thcRisk, 0, 40)
+        && data.score is number && data.score >= 0 && data.score <= 100
+        && data.applied is bool
+        && isBoundedString(data.followUpDate, 0, 80)
+        && isBoundedString(data.notes, 0, 12000)
+        && (!('status' in data) || isBoundedString(data.status, 0, 80))
+        && (!('appliedDate' in data) || isBoundedString(data.appliedDate, 0, 40))
+        && (!('nextStep' in data) || isBoundedString(data.nextStep, 0, 1000))
+        && (!('resumeVersion' in data) || isBoundedString(data.resumeVersion, 0, 200))
+        && (!('portfolioPiece' in data) || isBoundedString(data.portfolioPiece, 0, 300))
+        && (!('portfolioAssetUrl' in data) || isBoundedString(data.portfolioAssetUrl, 0, 2000))
+        && (!('portfolioStoragePath' in data) || isBoundedString(data.portfolioStoragePath, 0, 500))
+        && (!('contactName' in data) || isBoundedString(data.contactName, 0, 200))
+        && (!('riskWarning' in data) || isBoundedString(data.riskWarning, 0, 500))
+        && (!('interviewPrep' in data) || isBoundedString(data.interviewPrep, 0, 4000))
+        && (!('packetData' in data) || data.packetData is map)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.version is int && data.version >= 1;
+    }
+
+    function isValidLead(data, uid) {
+      return data.keys().hasAll(['uid', 'recordType', 'title', 'company', 'status', 'createdAt', 'updatedAt', 'version'])
+        && data.keys().hasOnly([
+          'uid', 'recordType', 'title', 'company', 'status', 'location', 'pay',
+          'applyUrl', 'source', 'matchScore', 'notes', 'matchedSkills',
+          'missingSkills', 'payload', 'createdAt', 'updatedAt', 'version'
+        ])
+        && data.uid == uid
+        && data.recordType in ['clay_lead', 'clay_company', 'notion_record', 'job_feed', 'target_company', 'xelime_opportunity']
+        && isBoundedString(data.title, 1, 240)
+        && isBoundedString(data.company, 0, 240)
+        && isBoundedString(data.status, 1, 100)
+        && (!('location' in data) || isBoundedString(data.location, 0, 240))
+        && (!('pay' in data) || isBoundedString(data.pay, 0, 120))
+        && (!('applyUrl' in data) || isBoundedString(data.applyUrl, 0, 2000))
+        && (!('source' in data) || isBoundedString(data.source, 0, 160))
+        && (!('matchScore' in data) || (data.matchScore is number && data.matchScore >= 0 && data.matchScore <= 100))
+        && (!('notes' in data) || isBoundedString(data.notes, 0, 12000))
+        && (!('matchedSkills' in data) || isBoundedStringList(data.matchedSkills, 60, 120))
+        && (!('missingSkills' in data) || isBoundedStringList(data.missingSkills, 60, 120))
+        && (!('payload' in data) || data.payload is map)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.version is int && data.version >= 1;
+    }
+
+    function isValidSearchCache(data, uid) {
+      return data.keys().hasAll(['uid', 'query', 'source', 'providersUsed', 'jobs', 'expiresAt', 'createdAt', 'updatedAt', 'version'])
+        && data.keys().hasOnly([
+          'uid', 'query', 'location', 'source', 'remoteOnly', 'providersUsed',
+          'jobs', 'apiCallsLogged', 'expiresAt', 'createdAt', 'updatedAt', 'version'
+        ])
+        && data.uid == uid
+        && isBoundedString(data.query, 0, 300)
+        && (!('location' in data) || isBoundedString(data.location, 0, 200))
+        && isBoundedString(data.source, 1, 80)
+        && (!('remoteOnly' in data) || data.remoteOnly is bool)
+        && isBoundedStringList(data.providersUsed, 20, 100)
+        && data.jobs is list && data.jobs.size() <= 100
+        && (!('apiCallsLogged' in data) || (data.apiCallsLogged is number && data.apiCallsLogged >= 0 && data.apiCallsLogged <= 1000000))
+        && data.expiresAt is number && data.expiresAt > 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.version is int && data.version >= 1;
+    }
+
+    function isValidSettingsDoc(data, uid) {
+      return data.keys().hasAll(['uid', 'kind', 'data', 'createdAt', 'updatedAt', 'version'])
+        && data.keys().hasOnly(['uid', 'kind', 'data', 'createdAt', 'updatedAt', 'version'])
+        && data.uid == uid
+        && isBoundedString(data.kind, 1, 100)
+        && data.data is map
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.version is int && data.version >= 1;
+    }
+
+    // ==================== USER SCOPED COLLECTIONS ====================
+    match /users/{uid}/jobs/{jobId} {
+      allow get: if isOwner(uid) && isValidId(jobId);
+      allow list: if isOwner(uid) && existing().uid == request.auth.uid;
+      allow create: if isOwner(uid) && isValidId(jobId)
+        && isValidJob(incoming(), uid)
+        && isValidCreateTimestampsAndVersion(incoming(), uid);
+      allow update: if isOwner(uid) && isValidId(jobId)
+        && isValidJob(incoming(), uid)
+        && isValidUpdateTimestampsAndVersion(uid)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['company', 'role', 'stage', 'pay', 'location', 'groupId', 'order', 'isExample', 'updatedAt', 'version']);
+      allow delete: if isOwner(uid) && isValidId(jobId) && existing().uid == request.auth.uid;
+
+      match /comments/{commentId} {
+        allow get: if isOwner(uid) && isValidId(jobId) && isValidId(commentId);
+        allow list: if isOwner(uid) && isValidId(jobId) && existing().uid == request.auth.uid;
+        allow create: if isOwner(uid) && isValidId(jobId) && isValidId(commentId)
+          && isValidJobComment(incoming(), uid, jobId)
+          && isValidCreateTimestampsAndVersion(incoming(), uid)
+          && exists(/databases/$(database)/documents/users/$(uid)/jobs/$(jobId));
+        allow update: if isOwner(uid) && isValidId(jobId) && isValidId(commentId)
+          && isValidJobComment(incoming(), uid, jobId)
+          && isValidUpdateTimestampsAndVersion(uid)
+          && incoming().jobId == existing().jobId
+          && incoming().diff(existing()).affectedKeys().hasOnly(['text', 'updatedAt', 'version']);
+        allow delete: if isOwner(uid) && isValidId(jobId) && isValidId(commentId) && existing().uid == request.auth.uid;
+      }
+    }
+
+    match /users/{uid}/groups/{groupId} {
+      allow get: if isOwner(uid) && isValidId(groupId);
+      allow list: if isOwner(uid) && existing().uid == request.auth.uid;
+      allow create: if isOwner(uid) && isValidId(groupId)
+        && isValidGroup(incoming(), uid)
+        && isValidCreateTimestampsAndVersion(incoming(), uid);
+      allow update: if isOwner(uid) && isValidId(groupId)
+        && isValidGroup(incoming(), uid)
+        && isValidUpdateTimestampsAndVersion(uid)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'color', 'collapsed', 'order', 'updatedAt', 'version']);
+      allow delete: if isOwner(uid) && isValidId(groupId) && existing().uid == request.auth.uid;
+    }
+
+    match /users/{uid}/tracker/{entryId} {
+      allow get: if isOwner(uid) && isValidId(entryId);
+      allow list: if isOwner(uid) && existing().uid == request.auth.uid;
+      allow create: if isOwner(uid) && isValidId(entryId)
+        && isValidTrackerEntry(incoming(), uid)
+        && isValidCreateTimestampsAndVersion(incoming(), uid);
+      allow update: if isOwner(uid) && isValidId(entryId)
+        && isValidTrackerEntry(incoming(), uid)
+        && isValidUpdateTimestampsAndVersion(uid)
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'companyName', 'jobTitle', 'lane', 'pay', 'thcRisk', 'score',
+          'applied', 'status', 'followUpDate', 'appliedDate', 'notes', 'nextStep',
+          'resumeVersion', 'portfolioPiece', 'portfolioAssetUrl', 'portfolioStoragePath',
+          'contactName', 'riskWarning', 'interviewPrep', 'packetData',
+          'updatedAt', 'version'
+        ]);
+      allow delete: if isOwner(uid) && isValidId(entryId) && existing().uid == request.auth.uid;
+    }
+
+    match /users/{uid}/leads/{leadId} {
+      allow get: if isOwner(uid) && isValidId(leadId);
+      allow list: if isOwner(uid) && existing().uid == request.auth.uid;
+      allow create: if isOwner(uid) && isValidId(leadId)
+        && isValidLead(incoming(), uid)
+        && isValidCreateTimestampsAndVersion(incoming(), uid);
+      allow update: if isOwner(uid) && isValidId(leadId)
+        && isValidLead(incoming(), uid)
+        && isValidUpdateTimestampsAndVersion(uid)
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'recordType', 'title', 'company', 'status', 'location', 'pay',
+          'applyUrl', 'source', 'matchScore', 'notes', 'matchedSkills',
+          'missingSkills', 'payload', 'updatedAt', 'version'
+        ]);
+      allow delete: if isOwner(uid) && isValidId(leadId) && existing().uid == request.auth.uid;
+    }
+
+    match /users/{uid}/searchCache/{key} {
+      allow get: if isOwner(uid) && isValidId(key);
+      allow list: if isOwner(uid) && existing().uid == request.auth.uid;
+      allow create: if isOwner(uid) && isValidId(key)
+        && isValidSearchCache(incoming(), uid)
+        && isValidCreateTimestampsAndVersion(incoming(), uid);
+      allow update: if isOwner(uid) && isValidId(key)
+        && isValidSearchCache(incoming(), uid)
+        && isValidUpdateTimestampsAndVersion(uid)
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'query', 'location', 'source', 'remoteOnly', 'providersUsed',
+          'jobs', 'apiCallsLogged', 'expiresAt', 'updatedAt', 'version'
+        ]);
+      allow delete: if isOwner(uid) && isValidId(key) && existing().uid == request.auth.uid;
+    }
+
+    match /users/{uid}/settings/{docId} {
+      allow get: if isOwner(uid) && isValidId(docId);
+      allow list: if isOwner(uid) && existing().uid == request.auth.uid;
+      allow create: if isOwner(uid) && isValidId(docId)
+        && isValidSettingsDoc(incoming(), uid)
+        && isValidCreateTimestampsAndVersion(incoming(), uid);
+      allow update: if isOwner(uid) && isValidId(docId)
+        && isValidSettingsDoc(incoming(), uid)
+        && isValidUpdateTimestampsAndVersion(uid)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['kind', 'data', 'updatedAt', 'version']);
+      allow delete: if isOwner(uid) && isValidId(docId) && existing().uid == request.auth.uid;
+    }
+  }
+}

@@ -1,0 +1,814 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job Feed Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: top bar, filter row, then feed (left) and a side column (right). Side column stacks above the feed on phones. */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --ink: #141922;
+  --muted: #5d6675;
+  --line: #e2e5ea;
+  --chip: #eceef2;
+  --accent: #14b86a;
+  --accent-ink: #ffffff;
+  --panel: #13191f;
+  --panel-ink: #e9edf2;
+  --panel-muted: #8e99a8;
+  --ring: #2fd3a0;
+  --warn: #c2410c;
+  --verify: #2563eb;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1116;
+    --surface: #161c24;
+    --ink: #e9edf2;
+    --muted: #97a1b0;
+    --line: #26303c;
+    --chip: #202933;
+    --accent: #1fd27c;
+    --accent-ink: #06210f;
+    --panel: #0a0e13;
+    --panel-ink: #e9edf2;
+    --panel-muted: #7d8898;
+    --ring: #34e3ad;
+    --warn: #fb923c;
+    --verify: #60a5fa;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1116;
+  --surface: #161c24;
+  --ink: #e9edf2;
+  --muted: #97a1b0;
+  --line: #26303c;
+  --chip: #202933;
+  --accent: #1fd27c;
+  --accent-ink: #06210f;
+  --panel: #0a0e13;
+  --panel-ink: #e9edf2;
+  --panel-muted: #7d8898;
+  --ring: #34e3ad;
+  --warn: #fb923c;
+  --verify: #60a5fa;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 16px 32px; }
+
+/* Top bar */
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding-block: 8px 14px; }
+.brand { font-weight: 700; letter-spacing: -0.02em; font-size: 20px; margin-right: 6px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab {
+  border: 1px solid transparent; background: transparent; color: var(--muted);
+  padding: 6px 12px; border-radius: 999px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+.tab .count { font-size: 11px; background: var(--chip); color: var(--muted); padding: 1px 7px; border-radius: 999px; }
+.tab[aria-selected="true"] .count { background: var(--bg); color: var(--ink); }
+.topbar .spacer { flex: 1; }
+.sort { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.sort select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+
+/* Filters */
+.filters {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px; margin-bottom: 14px;
+}
+.chip { border: 1px solid var(--line); background: var(--chip); color: var(--ink); padding: 6px 12px; border-radius: 8px; font-size: 13px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.filters .meta { margin-left: auto; color: var(--muted); font-size: 13px; align-self: center; }
+
+/* Layout */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.side-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } .side-col { order: -1; } }
+
+/* Job cards */
+.feed { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.job { display: grid; grid-template-columns: minmax(0, 1fr) 150px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.job-main { padding: 16px 18px; min-width: 0; }
+.job-top { display: flex; gap: 12px; align-items: flex-start; }
+.logo { width: 44px; height: 44px; border-radius: 8px; flex: none; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 18px; }
+.logo.sm { width: 36px; height: 36px; font-size: 15px; }
+.job-title { margin: 0; font-size: 17px; letter-spacing: -0.01em; text-wrap: balance; }
+.title-link { background: none; border: 0; padding: 0; margin: 0; text-align: left; font: inherit; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+.title-link:hover { text-decoration: underline; }
+.job-company { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.tagline { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; color: var(--muted); font-size: 12.5px; }
+.tagline-badge { background: var(--chip); padding: 2px 8px; border-radius: 6px; color: var(--ink); font-size: 12px; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-top: 12px; font-size: 13px; }
+.facts span { display: inline-flex; gap: 6px; align-items: center; color: var(--ink); min-width: 0; }
+.facts span i { font-style: normal; color: var(--muted); }
+.skills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.skill { font-size: 12px; border: 1px solid var(--line); padding: 2px 8px; border-radius: 999px; color: var(--muted); }
+.skill.hit { border-color: var(--accent); color: var(--accent); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line); padding: 10px 18px; background: var(--surface); grid-column: 1 / -1; }
+.icon-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: transparent; display: grid; place-items: center; color: var(--muted); flex: none; }
+.icon-btn[aria-pressed="true"] { color: var(--warn); border-color: var(--warn); }
+.ghost { border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 7px 12px; color: var(--ink); font-weight: 600; font-size: 13px; }
+.apply { margin-left: auto; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 8px 16px; font-weight: 700; font-size: 13px; }
+.apply[disabled] { background: var(--chip); color: var(--muted); }
+.fine { color: var(--muted); font-size: 12px; margin-right: auto; }
+
+/* Score panel on each card */
+.score { background: var(--panel); color: var(--panel-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px 12px; text-align: center; }
+.score small { letter-spacing: 0.08em; text-transform: uppercase; font-size: 11px; color: var(--panel-muted); font-weight: 600; }
+.ring { position: relative; width: 92px; height: 92px; }
+.ring svg { width: 92px; height: 92px; transform: rotate(-90deg); }
+.ring .num { position: absolute; inset: 0; display: grid; place-items: center; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ring .num sup { font-size: 12px; margin-left: 1px; }
+.score .flags { display: grid; gap: 4px; font-size: 11.5px; color: var(--panel-muted); text-align: left; }
+.score .flags b { color: var(--ring); font-weight: 600; }
+.score .ask { margin-top: 4px; background: transparent; color: var(--panel-ink); border: 1px solid #2c3742; border-radius: 8px; padding: 6px 10px; font-size: 12.5px; }
+
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; color: var(--muted); }
+
+/* Sidebar: match banner and recommendations */
+#side { display: flex; flex-direction: column; gap: 12px; }
+.match-banner { background: var(--panel); color: var(--panel-ink); border-radius: 12px; padding: 18px; }
+.mb-title { margin: 0; font-size: 17px; font-weight: 700; }
+.mb-sub { margin: 6px 0 14px; color: var(--panel-muted); font-size: 13px; }
+.btn-light { width: 100%; background: var(--panel-ink); color: var(--panel); border: 0; border-radius: 8px; padding: 9px 12px; font-weight: 600; }
+.rec-h { margin: 6px 2px 0; font-size: 15px; font-weight: 600; }
+.rec-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; }
+.rec-top { display: flex; gap: 10px; align-items: flex-start; }
+.rec-co { color: var(--muted); font-size: 12.5px; display: flex; gap: 4px; align-items: center; }
+.rec-title { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--ink); text-align: left; }
+.rec-title:hover { text-decoration: underline; }
+.rec-meta { color: var(--muted); font-size: 12.5px; }
+.rec-desc { margin: 0; font-size: 13px; color: var(--muted); }
+.rec-foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; font-size: 13px; font-weight: 600; }
+.rec-ago { color: var(--muted); font-weight: 400; font-size: 12px; }
+.ai-pill { background: var(--chip); border: 0; border-radius: 8px; padding: 8px; color: var(--ink); font-weight: 600; font-size: 13px; }
+
+/* Orion copilot */
+.copilot { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; min-height: 320px; min-width: 0; }
+.copilot header { display: flex; gap: 10px; align-items: center; padding: 14px; border-bottom: 1px solid var(--line); }
+.orion { width: 36px; height: 36px; border-radius: 50%; background: var(--panel); color: var(--ring); display: grid; place-items: center; font-weight: 700; }
+.copilot header b { display: block; }
+.copilot header span { color: var(--muted); font-size: 12px; }
+.thread { flex: 1; padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: auto; max-height: 360px; }
+.msg { background: var(--chip); padding: 10px 12px; border-radius: 10px; font-size: 13px; max-width: 96%; text-wrap: pretty; white-space: pre-line; }
+.msg.me { background: var(--accent); color: var(--accent-ink); align-self: flex-end; }
+.compose { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+.compose input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.compose button { background: var(--ink); color: var(--bg); border: 0; border-radius: 8px; padding: 8px 12px; font-weight: 600; }
+
+.note { margin-top: 18px; font-size: 12px; color: var(--muted); }
+
+/* Detail panel */
+.scrim { position: fixed; inset: 0; background: rgba(5, 8, 12, 0.5); z-index: 20; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%); z-index: 21;
+  background: var(--surface); border-left: 1px solid var(--line);
+  display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px);
+}
+.drawer-head { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.dh-main { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.dh-co { color: var(--muted); font-size: 13px; display: flex; gap: 4px; align-items: center; }
+.drawer-head h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; text-wrap: balance; }
+.dh-actions { display: flex; gap: 8px; position: relative; flex: none; }
+.menu {
+  position: absolute; right: 0; top: 42px; z-index: 2; min-width: 200px; padding: 4px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18); display: grid;
+}
+.menu button { background: none; border: 0; text-align: left; padding: 9px 10px; border-radius: 6px; color: var(--ink); }
+.menu button:hover { background: var(--chip); }
+.drawer-body { flex: 1; overflow: auto; padding: 18px; display: grid; gap: 22px; align-content: start; }
+.dmeta { display: flex; flex-wrap: wrap; gap: 6px 10px; color: var(--muted); font-size: 13px; }
+.dtag { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+.cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.btn-easy { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 700; }
+.btn-easy[disabled] { background: var(--chip); color: var(--muted); }
+.btn-outline { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 8px; padding: 10px 16px; font-weight: 600; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.stats div { padding: 0 12px; border-left: 1px solid var(--line); min-width: 0; }
+.stats div:first-child { border-left: 0; padding-left: 0; }
+.stats span { display: block; color: var(--muted); font-size: 12px; }
+.stats strong { font-weight: 600; font-size: 14px; }
+.sec-h { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+.prose { margin: 0; color: var(--muted); text-wrap: pretty; }
+.dlist { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--muted); }
+.dsec h4 { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.dsec p { margin: 0; text-wrap: pretty; }
+.dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.dgrid span { display: block; color: var(--muted); font-size: 12px; }
+.dgrid div { min-width: 0; overflow-wrap: anywhere; }
+.bar { height: 8px; border-radius: 999px; background: var(--chip); position: relative; overflow: hidden; }
+.bar i { position: absolute; top: 0; bottom: 0; background: var(--accent); border-radius: 999px; }
+.muted-p { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
+.doc-list { display: grid; gap: 10px; }
+.doc-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.doc-name { font-weight: 600; }
+.doc-state { color: var(--muted); font-size: 12.5px; }
+.doc-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 480px) {
+  .dgrid { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .stats div:nth-child(odd) { border-left: 0; padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">JOBS</div>
+    <div class="tabs" role="tablist" aria-label="Job lists">
+      <button class="tab" role="tab" data-tab="recommended" aria-selected="true">Recommended <span class="count" id="c-recommended">0</span></button>
+      <button class="tab" role="tab" data-tab="liked" aria-selected="false">Liked <span class="count" id="c-liked">0</span></button>
+      <button class="tab" role="tab" data-tab="applied" aria-selected="false">Applied <span class="count" id="c-applied">0</span></button>
+      <button class="tab" role="tab" data-tab="hidden" aria-selected="false">Hidden <span class="count" id="c-hidden">0</span></button>
+    </div>
+    <div class="spacer" style="flex:1"></div>
+    <label class="sort">Sort
+      <select id="sort" aria-label="Sort jobs">
+        <option value="match">Best match</option>
+        <option value="recent">Most recent</option>
+        <option value="pay">Highest pay</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="filters" id="filters" role="group" aria-label="Filters">
+    <button class="chip" data-filter="remote" aria-pressed="false">Remote</button>
+    <button class="chip" data-filter="hybrid" aria-pressed="false">Hybrid</button>
+    <button class="chip" data-filter="onsite" aria-pressed="false">Onsite</button>
+    <button class="chip" data-filter="fulltime" aria-pressed="false">Full-time</button>
+    <button class="chip" data-filter="contract" aria-pressed="false">Contract</button>
+    <button class="chip" data-filter="senior" aria-pressed="false">Senior Level</button>
+    <span class="meta" id="meta"></span>
+  </div>
+
+  <div class="layout">
+    <section class="feed" id="feed" aria-live="polite"></section>
+
+    <div class="side-col">
+      <div id="side"></div>
+      <aside class="copilot" aria-label="Orion copilot">
+        <header>
+          <div class="orion">O</div>
+          <div><b>Orion</b><span>Your AI copilot</span></div>
+        </header>
+        <div class="thread" id="thread">
+          <div class="msg">Hi, I'm Orion. I rank these roles against your skills. Ask me about any job, or tap <b>Ask Orion</b> on a card.</div>
+        </div>
+        <form class="compose" id="compose">
+          <input id="q" placeholder="Ask me anything…" aria-label="Message Orion" autocomplete="off">
+          <button type="submit">Send</button>
+        </form>
+      </aside>
+    </div>
+  </div>
+
+  <p class="note">Prototype with example listings. Match scores and company details are illustrative.</p>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle" hidden>
+  <div class="drawer-head">
+    <div class="dh-main">
+      <div class="logo" id="dlogo"></div>
+      <div style="min-width:0">
+        <div class="dh-co" id="dco"></div>
+        <h2 id="dtitle"></h2>
+      </div>
+    </div>
+    <div class="dh-actions">
+      <button class="icon-btn" id="dsave" data-dsave aria-pressed="false" aria-label="Save this job" title="Save">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+      </button>
+      <button class="icon-btn" id="dmore" aria-label="More options" aria-haspopup="true" aria-expanded="false" title="More">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+      </button>
+      <div class="menu" id="dmenu" hidden>
+        <button data-dask>Ask Orion about this role</button>
+        <button data-dhide>Hide this job</button>
+      </div>
+      <button class="icon-btn" id="dclose" aria-label="Close this panel">&times;</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="dbody"></div>
+</aside>
+
+<script>
+(function () {
+  // Example listings. Match is a 0–100 score based on the skill tags.
+  var MY_SKILLS = []; // Seeded by the parent app together with live jobs.
+
+  var JOBS = []; // Seeded prototype listings removed; feed is populated only by live jobs.
+
+  // Detail content for each job. Example data for the prototype.
+  var DETAILS = {}; // Seed catalog removed along with the prototype listings.
+
+  // Feed state is owned by the React parent (persisted to Firestore) and
+  // mirrored here in memory only. The parent restores it via a
+  // "xelime:feed-state-restore" postMessage and receives updates via
+  // "xelime:feed-state" posts from syncSavedJobs().
+  var state = { tab: "recommended", filters: {}, sort: "match", liked: {}, applied: {}, hidden: {}, docs: {} };
+  try {
+    window.addEventListener("message", function (event) {
+      if (event.origin !== window.location.origin || !event.data) return;
+      if (event.data.type === "xelime:feed-state-restore" && event.data.state) {
+        var restored = event.data.state;
+        if (restored.liked) state.liked = restored.liked;
+        if (restored.applied) state.applied = restored.applied;
+        if (restored.hidden) state.hidden = restored.hidden;
+        if (restored.docs) state.docs = restored.docs;
+      }
+      if (event.data.type === "xelime:live-jobs" && Array.isArray(event.data.jobs)) {
+        if (Array.isArray(event.data.skills) && event.data.skills.length) MY_SKILLS = event.data.skills;
+        var seen = {};
+        JOBS.forEach(function (j) { seen[j.id] = true; });
+        event.data.jobs.forEach(function (nj) {
+          if (nj && nj.id && !seen[nj.id]) { JOBS.push(nj); seen[nj.id] = true; }
+        });
+        if (JOBS.length > 60) JOBS = JOBS.slice(0, 60);
+        render();
+      }
+    });
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "xelime:feed-state-request" }, window.location.origin);
+    }
+  } catch (e) {}
+  var current = null;
+  var $ = function (s) { return document.querySelector(s); };
+  var feed = $("#feed"), thread = $("#thread");
+
+  function syncSavedJobs() {
+    var saved = JOBS.filter(function (j) { return !!state.liked[j.id] && !state.hidden[j.id]; }).map(function (j) {
+      var d = DETAILS[j.id] || {};
+      return {
+        id: j.id,
+        title: j.title,
+        company: j.company,
+        logo: j.logo,
+        color: j.color,
+        sector: j.sector,
+        loc: j.loc,
+        remote: j.remote,
+        type: j.type === "contract" ? "Contract" : "Full-time",
+        level: j.level,
+        pay: "$" + j.pay[0] + "K–$" + j.pay[1] + "K/yr",
+        years: j.years,
+        match: j.match,
+        skills: j.skills,
+        hits: skillHits(j),
+        applied: !!state.applied[j.id],
+        tagline: d.tagline || ""
+      };
+    });
+    if (window.parent && window.parent !== window) {
+      try {
+        window.parent.postMessage({ type: "xelime:saved-jobs", jobs: saved }, window.location.origin);
+        window.parent.postMessage({
+          type: "xelime:feed-state",
+          state: { liked: state.liked, applied: state.applied, hidden: state.hidden, docs: state.docs }
+        }, window.location.origin);
+      } catch (e) {}
+    }
+  }
+
+  var ICON_HEART = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7-4.4-9.5-8.6C.8 9.5 2.4 5.5 6.1 5.1c2.2-.2 3.7 1.1 4.4 2.3.7-1.2 2.2-2.5 4.4-2.3 3.7.4 5.3 4.4 3.6 7.3C19 16.6 12 21 12 21z"/></svg>';
+  var ICON_HIDE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
+  var ICON_BM = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  }); }
+
+  function ago(h) {
+    if (h < 1) return "less than an hour ago";
+    if (h < 24) return Math.round(h) + " hours ago";
+    return Math.round(h / 24) + " days ago";
+  }
+
+  function mo(k) { return (k / 12).toFixed(1) + "k"; }
+
+  function verified(j) {
+    if (!/Public/.test(j.sector)) return "";
+    return '<svg width="13" height="13" viewBox="0 0 24 24" role="img" aria-label="Verified company"><circle cx="12" cy="12" r="11" fill="var(--verify)"/><path d="M7 12.5l3 3 7-7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  function ringColor(n) { return n >= 80 ? "var(--ring)" : n >= 60 ? "#f59e0b" : "#64748b"; }
+
+  function ring(n) {
+    var r = 40, c = 2 * Math.PI * r, off = c * (1 - n / 100);
+    return '<div class="ring"><svg viewBox="0 0 92 92"><circle cx="46" cy="46" r="40" fill="none" stroke="#2c3742" stroke-width="7"/>' +
+      '<circle cx="46" cy="46" r="40" fill="none" stroke="' + ringColor(n) + '" stroke-width="7" stroke-linecap="round" ' +
+      'stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '"/></svg>' +
+      '<div class="num">' + n + '<sup>%</sup></div></div>';
+  }
+
+  function jobById(id) { return JOBS.filter(function (j) { return j.id === id; })[0]; }
+
+  // Catalog details only exist for the six static prototype listings; live
+  // jobs merged in via "xelime:live-jobs" fall back to fields carried on the
+  // job itself so cards and the detail drawer never crash on missing data.
+  function detailFor(id) {
+    if (DETAILS[id]) return DETAILS[id];
+    var j = jobById(id) || {};
+    var lo = (j.pay && j.pay[0]) || 0, hi = (j.pay && j.pay[1]) || lo;
+    var text = j.tagline || j.summary || "";
+    return {
+      tagline: text || ("Live listing from " + (j.company || "a company") + "."),
+      market: [lo, hi],
+      reviewed: "recently",
+      role: text || "This listing was pulled from a live job search. Open the original posting for the full description.",
+      resp: [text || "Review the full posting on the source site before applying."],
+      reqs: (j.skills || []).slice(0, 8),
+      founded: "", size: "", stage: "", hq: j.loc || "", revenue: "",
+      note: "Market band estimated from the posted salary.",
+      hiring: "Applicant counts are not provided by this source.",
+      about: text,
+      perks: []
+    };
+  }
+  function skillHits(j) { return j.skills.filter(function (s) { return MY_SKILLS.indexOf(s) !== -1; }); }
+  function skillGaps(j) { return j.skills.filter(function (s) { return MY_SKILLS.indexOf(s) === -1; }); }
+
+  function visibleJobs() {
+    var list = JOBS.filter(function (j) {
+      if (state.tab === "liked") return !!state.liked[j.id] && !state.hidden[j.id];
+      if (state.tab === "applied") return !!state.applied[j.id];
+      if (state.tab === "hidden") return !!state.hidden[j.id];
+      return !state.hidden[j.id];
+    });
+    var f = state.filters;
+    list = list.filter(function (j) {
+      if (f.remote && j.remote !== "Remote") return false;
+      if (f.hybrid && j.remote !== "Hybrid") return false;
+      if (f.onsite && j.remote !== "Onsite") return false;
+      if (f.fulltime && j.type !== "fulltime") return false;
+      if (f.contract && j.type !== "contract") return false;
+      if (f.senior && j.level !== "senior") return false;
+      return true;
+    });
+    if (state.sort === "match") list.sort(function (a, b) { return b.match - a.match; });
+    if (state.sort === "recent") list.sort(function (a, b) { return a.ago - b.ago; });
+    if (state.sort === "pay") list.sort(function (a, b) { return b.pay[1] - a.pay[1]; });
+    return list;
+  }
+
+  function card(j) {
+    var liked = !!state.liked[j.id], applied = !!state.applied[j.id];
+    var hits = skillHits(j);
+    var skillChips = j.skills.map(function (s) {
+      return '<span class="skill' + (MY_SKILLS.indexOf(s) !== -1 ? " hit" : "") + '">' + esc(s) + '</span>';
+    }).join("");
+    var flags = [];
+    if (hits.length) flags.push("<b>" + hits.length + " of " + j.skills.length + "</b> skills match");
+    if (j.sponsor) flags.push("<b>Visa sponsor likely</b>");
+    var label = j.match >= 80 ? "Strong match" : j.match >= 60 ? "Fair match" : "Stretch";
+    return '' +
+    '<article class="job" data-id="' + j.id + '">' +
+      '<div class="job-main">' +
+        '<div class="job-top">' +
+          '<div class="logo" style="background:' + j.color + '">' + esc(j.logo) + '</div>' +
+          '<div style="min-width:0">' +
+            '<h3 class="job-title"><button class="title-link" data-open="' + j.id + '">' + esc(j.title) + '</button></h3>' +
+            '<div class="job-company">' + esc(j.company) + ' / ' + esc(j.sector) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="tagline">' +
+          '<span class="tagline-badge">Posted ' + ago(j.ago) + '</span>' +
+          (j.alumni ? '<span class="tagline-badge">' + j.alumni + ' alumni work here</span>' : '') +
+          '<span class="tagline-badge">' + (j.applicants < 25 ? "Less than 25 applicants" : j.applicants + " applicants") + '</span>' +
+        '</div>' +
+        '<div class="facts">' +
+          '<span><i>Location</i> ' + esc(j.loc) + '</span>' +
+          '<span><i>Pay</i> $' + j.pay[0] + 'K–$' + j.pay[1] + 'K/yr</span>' +
+          '<span><i>Type</i> ' + (j.type === "contract" ? "Contract" : "Full-time") + '</span>' +
+          '<span><i>Exp</i> ' + esc(j.years) + '</span>' +
+          '<span><i>Setup</i> ' + esc(j.remote) + '</span>' +
+          '<span><i>Level</i> ' + (j.level === "senior" ? "Senior" : j.level === "mid" ? "Mid" : "Junior") + '</span>' +
+        '</div>' +
+        '<div class="skills">' + skillChips + '</div>' +
+      '</div>' +
+      '<div class="score">' +
+        '<small>' + label + '</small>' + ring(j.match) +
+        '<div class="flags">' + flags.map(function (f) { return '<div>' + f + '</div>'; }).join("") + '</div>' +
+        '<button class="ask" data-ask="' + j.id + '">Ask Orion</button>' +
+      '</div>' +
+      '<div class="actions">' +
+        '<button class="icon-btn" data-hide="' + j.id + '" aria-label="Hide this job" title="Hide">' + ICON_HIDE + '</button>' +
+        '<button class="icon-btn" data-like="' + j.id + '" aria-pressed="' + liked + '" aria-label="Save this job" title="Save">' + ICON_HEART + '</button>' +
+        '<button class="ghost" data-open="' + j.id + '">Details</button>' +
+        '<button class="ghost" data-ask="' + j.id + '">Ask Orion</button>' +
+        '<span class="fine">' + (applied ? "Applied" : "") + '</span>' +
+        '<button class="apply" data-apply="' + j.id + '"' + (applied ? " disabled" : "") + '>' + (applied ? "Applied" : "Apply now") + '</button>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function recCard(j) {
+    return '' +
+    '<article class="rec-card">' +
+      '<div class="rec-top">' +
+        '<div class="logo sm" style="background:' + j.color + '">' + esc(j.logo) + '</div>' +
+        '<div style="min-width:0;flex:1">' +
+          '<div class="rec-co">' + esc(j.company) + ' ' + verified(j) + '</div>' +
+          '<button class="rec-title" data-open="' + j.id + '">' + esc(j.title) + '</button>' +
+        '</div>' +
+        '<button class="icon-btn" data-like="' + j.id + '" aria-pressed="' + !!state.liked[j.id] + '" aria-label="Save this job" title="Save">' + ICON_BM + '</button>' +
+      '</div>' +
+      '<div class="rec-meta">' + (j.type === "contract" ? "Contract" : "Full-time") + ' · ' + esc(j.loc) + '</div>' +
+      '<p class="rec-desc">' + esc(detailFor(j.id).tagline) + '</p>' +
+      '<div class="rec-foot"><span>USD ' + mo(j.pay[0]) + ' – ' + mo(j.pay[1]) + '/month</span><span class="rec-ago">' + ago(j.ago) + '</span></div>' +
+      '<button class="ai-pill" data-open="' + j.id + '">AI Match: ' + j.match + '% Match</button>' +
+    '</article>';
+  }
+
+  function renderSide() {
+    var ranked = JOBS.filter(function (j) { return !state.hidden[j.id]; })
+      .sort(function (a, b) { return b.match - a.match; });
+    if (!ranked.length) { $("#side").innerHTML = ""; return; }
+    var best = ranked[0];
+    var tier = best.match >= 85 ? "Great Fit!" : best.match >= 70 ? "Good Fit" : "Stretch";
+    $("#side").innerHTML =
+      '<div class="match-banner">' +
+        '<p class="mb-title">Match Score: ' + best.match + '% — ' + tier + '</p>' +
+        '<p class="mb-sub">Top role: ' + esc(best.title) + ' at ' + esc(best.company) + '. It matches ' + skillHits(best).length + ' of your ' + best.skills.length + ' tools.</p>' +
+        '<button class="btn-light" data-open="' + best.id + '">View AI Suggestions</button>' +
+      '</div>' +
+      '<h3 class="rec-h">Recommended for You</h3>' +
+      ranked.slice(0, 3).map(recCard).join("");
+  }
+
+  function render() {
+    var list = visibleJobs();
+    feed.innerHTML = list.length
+      ? list.map(card).join("")
+      : '<div class="empty">' + (state.tab === "recommended" ? "No jobs match these filters. Clear a filter to see more." : "Nothing here yet. Save or apply to a job and it will show up in this list.") + '</div>';
+
+    var counts = {
+      recommended: JOBS.filter(function (j) { return !state.hidden[j.id]; }).length,
+      liked: JOBS.filter(function (j) { return state.liked[j.id] && !state.hidden[j.id]; }).length,
+      applied: JOBS.filter(function (j) { return state.applied[j.id]; }).length,
+      hidden: JOBS.filter(function (j) { return state.hidden[j.id]; }).length
+    };
+    Object.keys(counts).forEach(function (k) { $("#c-" + k).textContent = counts[k]; });
+    $("#meta").textContent = list.length + " of " + JOBS.length + " roles";
+    document.querySelectorAll(".tab").forEach(function (t) {
+      t.setAttribute("aria-selected", String(t.dataset.tab === state.tab));
+    });
+    document.querySelectorAll(".chip").forEach(function (c) {
+      c.setAttribute("aria-pressed", String(!!state.filters[c.dataset.filter]));
+    });
+    renderSide();
+    syncSavedJobs();
+  }
+
+  function say(text, me) {
+    var d = document.createElement("div");
+    d.className = "msg" + (me ? " me" : "");
+    d.textContent = text;
+    thread.appendChild(d);
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function summarize(j) {
+    var hits = skillHits(j), gaps = skillGaps(j);
+    var out = j.title + " at " + j.company + " scores " + j.match + "%. ";
+    out += hits.length ? "Your overlap: " + hits.join(", ") + ". " : "No direct skill overlap yet. ";
+    out += gaps.length ? "Worth learning: " + gaps.join(", ") + ". " : "";
+    out += j.sponsor ? "They are likely to sponsor a visa." : "";
+    return out.trim();
+  }
+
+  function answer(q) {
+    var s = q.toLowerCase();
+    if (/salary|pay|money|\$/.test(s)) return "Pay ranges shown are the posted bands. The highest listed right now is " + Math.max.apply(null, JOBS.map(function (j) { return j.pay[1]; })) + "K/yr.";
+    if (/remote|hybrid|onsite/.test(s)) return "You can filter by setup with the chips above the feed.";
+    if (/best|top|recommend/.test(s)) {
+      var top = visibleJobs()[0];
+      return top ? "Top match right now: " + summarize(top) : "Nothing is visible with the current filters.";
+    }
+    return "I can compare any role to your skills. Tap Ask Orion on a card, or try asking about pay, setup, or your best match.";
+  }
+
+  // Suggested documents: a resume and cover letter per job, each with a status.
+  var DOC_LABEL = { none: "Not created", draft: "Draft", ready: "Ready to send" };
+  var DOC_ACTION = { none: "Create draft", draft: "Mark ready", ready: "Back to draft" };
+  function docStatus(id, kind) { return (state.docs[id] || {})[kind] || "none"; }
+  function setDocIfNone(id, kind) {
+    state.docs[id] = state.docs[id] || {};
+    if (!state.docs[id][kind]) state.docs[id][kind] = "draft";
+  }
+  function nextStatus(s) { return s === "none" ? "draft" : s === "draft" ? "ready" : "draft"; }
+  function docRow(id, kind, name) {
+    var s = docStatus(id, kind);
+    return '<div class="doc-row"><div><div class="doc-name">' + name + '</div><div class="doc-state">' + DOC_LABEL[s] + '</div></div>' +
+      '<div class="doc-btns"><button class="ghost" data-docopen="' + kind + '">Open</button>' +
+      '<button class="ghost" data-docnext="' + kind + '">' + DOC_ACTION[s] + '</button></div></div>';
+  }
+  function docsSection(id) {
+    return '<section><h3 class="sec-h">Suggested documents</h3><div class="doc-list">' +
+      docRow(id, "resume", "Tailored resume") + docRow(id, "cover", "Cover letter") + '</div></section>';
+  }
+
+  function stat(k, v) { return '<div><span>' + k + '</span><strong>' + esc(v) + '</strong></div>'; }
+  function cell(k, v) { return '<div><span>' + k + '</span>' + esc(v) + '</div>'; }
+  function li(t) { return '<li>' + esc(t) + '</li>'; }
+
+  function openDetail(id) {
+    var j = jobById(id), d = detailFor(id), lo = d.market[0], hi = d.market[1], span = (hi - lo) || 1;
+    var left = Math.max(0, Math.min(100, (j.pay[0] - lo) / span * 100));
+    var right = Math.max(0, Math.min(100, (j.pay[1] - lo) / span * 100));
+    var hits = skillHits(j), gaps = skillGaps(j);
+    var saved = !!state.liked[id], applied = !!state.applied[id];
+    var matched = Math.round(j.applicants * j.match / 100);
+    current = id;
+
+    $("#dlogo").textContent = j.logo;
+    $("#dlogo").style.background = j.color;
+    $("#dco").innerHTML = esc(j.company) + ' ' + verified(j);
+    $("#dtitle").textContent = j.title;
+    $("#dsave").setAttribute("aria-pressed", String(saved));
+    $("#dmore").setAttribute("aria-expanded", "false");
+    $("#dmenu").hidden = true;
+
+    $("#dbody").innerHTML =
+      '<div>' +
+        '<div class="dmeta"><span>' + (j.type === "contract" ? "Contract" : "Full-time") + '</span><span>·</span>' +
+          '<span>' + esc(j.loc) + ' (' + esc(j.remote) + ')</span><span>·</span>' +
+          '<span>USD ' + mo(j.pay[0]) + ' – ' + mo(j.pay[1]) + '/month</span></div>' +
+        '<p class="dtag">' + esc(d.tagline) + '</p>' +
+        '<div class="cta-row">' +
+          '<button class="btn-easy" data-dapply' + (applied ? ' disabled' : '') + '>' + (applied ? 'Applied' : 'Easy apply') + '</button>' +
+          '<button class="btn-outline" data-dresume>Create resume</button>' +
+          '<button class="btn-outline" data-dcover>Create cover letter</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="stats">' +
+        stat("Experience Level", j.years) +
+        stat("Number of Applicants", j.applicants + " applicants") +
+        stat("Matched Applicants", matched + " matched") +
+        stat("Last Reviewed", d.reviewed) +
+      '</div>' +
+      docsSection(id) +
+      '<section><h3 class="sec-h">About the Role</h3><p class="prose">' + esc(d.role) + '</p></section>' +
+      '<section><h3 class="sec-h">Responsibilities</h3><ul class="dlist">' + d.resp.map(li).join("") + '</ul></section>' +
+      '<section><h3 class="sec-h">Requirements</h3><ul class="dlist">' + d.reqs.map(li).join("") + '</ul></section>' +
+      '<section class="dsec"><h4>More about the company</h4><div class="dgrid">' +
+        cell("Founded", d.founded) + cell("Company size", d.size) + cell("Stage", d.stage) +
+        cell("Headquarters", d.hq) + cell("Revenue", d.revenue) + cell("Posted", ago(j.ago)) +
+      '</div><p style="margin-top:12px">' + esc(d.about) + '</p></section>' +
+      '<section class="dsec"><h4>Pay against market</h4>' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>Market $' + lo + 'K</span><span>$' + hi + 'K</span></div>' +
+        '<div class="bar" style="margin-top:6px" aria-label="Posted pay band within market range"><i style="left:' + left.toFixed(1) + '%;width:' + (right - left).toFixed(1) + '%"></i></div>' +
+        '<p class="muted-p">Posted band $' + j.pay[0] + 'K–$' + j.pay[1] + 'K. ' + esc(d.note) + '</p></section>' +
+      '<section class="dsec"><h4>Hiring context</h4><p>' + esc(d.hiring) + '</p>' +
+        '<p class="muted-p">' + (j.applicants < 25 ? "Less than 25 applicants so far" : j.applicants + " applicants so far") + ". " + j.alumni + ' alumni work here.</p></section>' +
+      '<section class="dsec"><h4>Skill fit</h4><div class="skills">' +
+        hits.map(function (s) { return '<span class="skill hit">' + esc(s) + '</span>'; }).join("") +
+        gaps.map(function (s) { return '<span class="skill">' + esc(s) + '</span>'; }).join("") +
+        '</div><p class="muted-p">' + hits.length + " of " + j.skills.length + " skills match. Grey tags are gaps to learn.</p></section>" +
+      '<section class="dsec"><h4>Benefits</h4><div class="skills">' +
+        d.perks.map(function (p) { return '<span class="tagline-badge">' + esc(p) + '</span>'; }).join("") + '</div></section>' +
+      '<p class="muted-p">Example data for this prototype. Real company details would come from the backend or a company data source.</p>';
+
+    $("#drawer").hidden = false;
+    $("#scrim").hidden = false;
+    $("#drawer").scrollTop = 0;
+    $("#dclose").focus();
+  }
+
+  function closeDetail() {
+    $("#drawer").hidden = true;
+    $("#scrim").hidden = true;
+    $("#dmenu").hidden = true;
+  }
+
+  // Detail panel events
+  $("#dclose").addEventListener("click", closeDetail);
+  $("#scrim").addEventListener("click", closeDetail);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDetail(); });
+  $("#dmore").addEventListener("click", function () {
+    var m = $("#dmenu"); m.hidden = !m.hidden;
+    $("#dmore").setAttribute("aria-expanded", String(!m.hidden));
+  });
+  $("#drawer").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b || current === null) return;
+    var id = current;
+    if (b.id === "dclose" || b.id === "dmore") return;
+    if (b.dataset.dask !== undefined) {
+      var j = jobById(id); closeDetail();
+      say("Tell me about " + j.title + " at " + j.company + ".", true); say(summarize(j));
+      return;
+    }
+    if (b.dataset.dhide !== undefined) { state.hidden[id] = true; closeDetail(); render(); return; }
+    if (b.dataset.dresume !== undefined) {
+      var jr = jobById(id); setDocIfNone(id, "resume"); closeDetail();
+      say("Resume starter for " + jr.title + " at " + jr.company + ":\n" +
+        "Lead with " + (skillHits(jr).join(", ") || "your design background") + ".\n" +
+        "Mirror these responsibilities: " + detailFor(id).resp[0] + ".");
+      return;
+    }
+    if (b.dataset.docopen !== undefined) {
+      var kind = b.dataset.docopen, jo = jobById(id);
+      setDocIfNone(id, kind); closeDetail();
+      say(kind === "resume"
+        ? "Tailored resume for " + jo.title + " at " + jo.company + ":\nLead with " + (skillHits(jo).join(", ") || "your design background") + ".\nMirror this responsibility: " + detailFor(id).resp[0] + "."
+        : "Cover letter draft for " + jo.title + " at " + jo.company + ":\nI'm applying for the " + jo.title + " role at " + jo.company + ". My work in " + (skillHits(jo).join(", ") || "design and visualization") + " fits what you're looking for.");
+      return;
+    }
+    if (b.dataset.docnext !== undefined) {
+      var kn = b.dataset.docnext;
+      state.docs[id] = state.docs[id] || {};
+      state.docs[id][kn] = nextStatus(docStatus(id, kn));
+      openDetail(id);
+      return;
+    }
+    if (b.dataset.dcover !== undefined) {
+      var jc = jobById(id); setDocIfNone(id, "cover"); closeDetail();
+      say("Cover letter opening for " + jc.title + " at " + jc.company + ":\n" +
+        "I'm applying for the " + jc.title + " role at " + jc.company + ". " +
+        "My work in " + (skillHits(jc).join(", ") || "design and visualization") + " fits what you're looking for. " +
+        "I would welcome the chance to talk.");
+      return;
+    }
+    if (b.dataset.dsave !== undefined) { state.liked[id] = !state.liked[id]; }
+    if (b.dataset.dapply !== undefined) { state.applied[id] = true; }
+    render(); openDetail(id);
+  });
+
+  // Filters, tabs, sort
+  document.querySelector(".tabs").addEventListener("click", function (e) {
+    var t = e.target.closest(".tab"); if (!t) return;
+    state.tab = t.dataset.tab; render();
+  });
+  document.querySelector("#filters").addEventListener("click", function (e) {
+    var c = e.target.closest(".chip"); if (!c) return;
+    var k = c.dataset.filter; state.filters[k] = !state.filters[k]; render();
+  });
+  $("#sort").addEventListener("change", function (e) { state.sort = e.target.value; render(); });
+
+  // Feed events
+  feed.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    var id = Number(b.dataset.open || b.dataset.like || b.dataset.hide || b.dataset.apply || b.dataset.ask);
+    if (b.dataset.open) { openDetail(id); return; }
+    if (b.dataset.like) { state.liked[id] = !state.liked[id]; }
+    else if (b.dataset.hide) { state.hidden[id] = !state.hidden[id]; }
+    else if (b.dataset.apply) { state.applied[id] = true; }
+    else if (b.dataset.ask) { var jj = jobById(id); say("Tell me about " + jj.title + " at " + jj.company + ".", true); say(summarize(jj)); }
+    render();
+  });
+
+  // Sidebar events
+  $("#side").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.open) { openDetail(Number(b.dataset.open)); return; }
+    if (b.dataset.like) { var id = Number(b.dataset.like); state.liked[id] = !state.liked[id]; render(); }
+  });
+
+  // Orion
+  $("#compose").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var input = $("#q"); var v = input.value.trim(); if (!v) return;
+    say(v, true); say(answer(v)); input.value = "";
+  });
+
+  window.addEventListener("message", function (e) {
+    if (e.origin !== window.location.origin || !e.data) return;
+    if (e.data.type === "xelime:request-saved-jobs") syncSavedJobs();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
+
+</body></html>

@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preset Panel</title>
+<style>
+:root{font-family:Inter,Arial,sans-serif;color:#24372e;background:#f4f6f4;font-size:14px}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh}
+
+/* Host page launcher */
+.pp-host{min-height:100vh;display:flex;flex-direction:column}
+.pp-host-header{background:#fff;border-bottom:1px solid #e2e8e3;padding:22px max(24px,calc((100vw - 1120px)/2));display:flex;justify-content:space-between;align-items:center}
+.pp-host-header strong{font-size:20px;letter-spacing:-.6px}
+.pp-host-main{max-width:1120px;width:100%;padding:48px 24px;margin:auto;flex:1;display:flex;align-items:center;justify-content:center}
+.pp-launch-card{background:#fff;border:1px solid #e0e7e1;border-radius:15px;padding:34px;max-width:560px;width:100%;text-align:left}
+.pp-launch-card h1{font-size:30px;letter-spacing:-1px;margin:0 0 9px}
+.pp-launch-card p{color:#77847c;line-height:1.6;margin:0 0 22px}
+.pp-launch-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pp-open-btn{background:#286545;color:#fff;border:none;border-radius:7px;padding:12px 18px;font:inherit;font-weight:600;cursor:pointer}
+.pp-open-btn:hover{background:#21553a}
+.pp-host-note{font-size:12px;color:#7b887e}
+
+/* XELIME-style floating pop-up window */
+.pp-window{
+  position:fixed;
+  z-index:50;
+  display:none;
+  flex-direction:column;
+  background:#020617;
+  border:1px solid rgba(51,65,85,.9);
+  border-radius:8px;
+  box-shadow:0 0 0 1px rgba(59,130,246,.3),0 25px 50px -12px rgba(0,0,0,.8);
+  overflow:hidden;
+}
+.pp-window.is-open{display:flex}
+.pp-window.is-minimized{height:40px !important}
+.pp-window.is-expanded:not(.is-minimized){
+  left:0 !important;
+  top:0 !important;
+  width:100vw !important;
+  height:100vh !important;
+  height:100dvh !important;
+  border-radius:0 !important;
+}
+
+.pp-titlebar{
+  height:40px;
+  flex-shrink:0;
+  background:#0f172a;
+  border-bottom:1px solid #1e293b;
+  padding:0 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  user-select:none;
+  cursor:grab;
+}
+.pp-window.is-dragging .pp-titlebar{cursor:grabbing}
+.pp-window.is-expanded:not(.is-minimized) .pp-titlebar{cursor:default}
+.pp-window.is-minimized .pp-titlebar{border-bottom-color:transparent}
+
+.pp-title-left{display:flex;align-items:center;gap:8px;min-width:0}
+.pp-dot{
+  width:8px;
+  height:8px;
+  border-radius:9999px;
+  background:#3b82f6;
+  box-shadow:0 1px 4px rgba(59,130,246,.5);
+  flex-shrink:0;
+}
+.pp-square-icon{
+  width:14px;
+  height:14px;
+  color:#60a5fa;
+  flex-shrink:0;
+  display:block;
+}
+.pp-title-text{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#f1f5f9;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.pp-title-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+button.pp-win-btn{
+  width:28px;
+  height:28px;
+  padding:0;
+  border-radius:4px;
+  background:rgba(2,6,23,.6);
+  border:1px solid #1e293b;
+  color:#cbd5e1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:background-color .15s ease,border-color .15s ease,color .15s ease;
+}
+button.pp-win-btn:hover{
+  background:#1e293b;
+  border-color:rgba(59,130,246,.6);
+  color:#60a5fa;
+}
+button.pp-win-btn--close:hover{
+  background:rgba(76,5,25,.7);
+  border-color:rgba(244,63,94,.6);
+  color:#fda4af;
+}
+button.pp-win-btn:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}
+button.pp-win-btn svg{width:14px;height:14px;display:block}
+
+.pp-window-body{
+  flex:1;
+  min-height:0;
+  min-width:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  background:#f4f6f4;
+  color:#24372e;
+  container-type:inline-size;
+}
+.pp-window.is-minimized .pp-window-body{display:none}
+.pp-window.is-interacting .pp-window-body{pointer-events:none;user-select:none}
+
+.pp-resize-handle{
+  position:absolute;
+  right:0;
+  bottom:0;
+  width:16px;
+  height:16px;
+  cursor:nwse-resize;
+  z-index:30;
+  display:flex;
+  align-items:flex-end;
+  justify-content:flex-end;
+  padding:2px;
+  color:#94a3b8;
+  transition:color .15s ease;
+}
+.pp-resize-handle:hover{color:#60a5fa}
+.pp-window.is-minimized .pp-resize-handle,
+.pp-window.is-expanded .pp-resize-handle{display:none}
+
+/* Existing Preset Panel styles (preserved) */
+.pp-window-body header{background:#fff;border-bottom:1px solid #e2e8e3;padding:22px max(24px,calc((100% - 1120px)/2));display:flex;justify-content:space-between;align-items:center}
+.pp-window-body header strong{font-size:20px;letter-spacing:-.6px}
+.status{background:#edf2ee;border-radius:22px;padding:8px 14px;font-size:12px}
+.pp-window-body main{max-width:1120px;padding:34px 24px;margin:auto}
+.pp-window-body h1{font-size:30px;letter-spacing:-1px;margin:0 0 9px}
+.pp-window-body p{color:#77847c;line-height:1.6;margin:0 0 22px}
+.grid{display:grid;grid-template-columns:1.08fr 1fr;gap:22px}
+.card{background:#fff;border:1px solid #e0e7e1;border-radius:15px;padding:24px;margin-bottom:20px}
+h2{font-size:14px;margin:0 0 18px}
+label{display:block;font-size:12px;font-weight:600;margin-bottom:8px}
+select,textarea,input[type=url]{width:100%;border:1px solid #dce4dd;background:#fcfdfc;border-radius:8px;padding:12px;color:#253d30;font:inherit}
+select:focus,textarea:focus,input:focus,button:focus-visible{outline:2px solid #79aa8d;outline-offset:3px}
+textarea{min-height:170px;resize:vertical;line-height:1.7;font-size:12px}
+.meta{font-size:11px;color:#6b7d70;margin:12px 0 0;line-height:1.6}
+.line{height:1px;background:#e9eee9;margin:24px 0}
+.dials{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.dial{text-align:center}
+.dial label{font-size:10px}
+.knob{width:54px;height:54px;margin:12px auto;border:5px solid #dce8df;border-radius:50%;background:linear-gradient(135deg,#fff,#eef3ef);position:relative;box-shadow:0 2px 6px #2030270c}
+.needle{position:absolute;width:3px;height:12px;background:#2b6b4b;left:21px;top:4px;transform-origin:1.5px 18px}
+.dial input{width:100%;accent-color:#2b6b4b}
+.word{font-size:10px;line-height:1.5;min-height:44px;margin-top:7px;overflow-wrap:anywhere}
+.off{opacity:.35}
+button{font:inherit;cursor:pointer;border:1px solid #d9e3dc;border-radius:7px;padding:9px 13px;background:#fff;color:#2a593c}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:#286545;color:white;border:none}
+.run{width:100%;margin-top:15px;padding:14px}
+.small{font-size:11px;color:#7b887e;line-height:1.6}
+.warning{background:#fff8e9;border:1px solid #ecd9b0;border-radius:9px;padding:13px 15px;color:#8b692a;font-size:12px;line-height:1.7;margin-bottom:20px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.steps{display:flex;gap:8px;margin-top:16px}
+.step{flex:1;min-width:0;padding:12px 0;background:#f0f2f1;color:#8e9a92}
+.step[data-digit="1"],.step[data-digit="4"]{background:#fff0d1;color:#9a6e19}
+.step[data-digit="3"]{background:#fee4df;color:#ac493e}
+.step[data-digit="5"]{background:#e2f1e6;color:#31774a}
+.step[data-digit="6"]{background:#eef0f2;color:#69767c}
+.step.active{background:#e4edff;color:#416db5}
+.output{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;font-size:13px;min-height:350px;margin-top:23px}
+.empty{display:grid;place-items:center;min-height:350px;color:#8d9b91;text-align:center;font-size:13px}
+.banner{background:#fff4dc;border:1px solid #ecd19a;border-radius:12px;padding:20px;margin-bottom:22px}
+.banner textarea{margin:15px 0;min-height:90px}
+.actions{display:flex;gap:9px;flex-wrap:wrap}
+details summary{cursor:pointer;font-size:13px;font-weight:600}
+details label{margin-top:18px}
+.pp-profile-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;margin-top:14px}
+.pp-field{min-width:0}
+.pp-field.is-full{grid-column:1/-1}
+.pp-profile-fields label{margin-top:0;margin-bottom:6px;font-size:11px;color:#54675c}
+.pp-profile-fields input,.pp-profile-fields select,.pp-profile-fields textarea{width:100%;border:1px solid #dce4dd;background:#f8faf8;border-radius:8px;padding:9px 11px;color:#253d30;font:inherit;font-size:12px;line-height:1.5;min-height:0}
+.pp-profile-fields textarea{min-height:74px;resize:vertical}
+.pp-profile-fields select:disabled{opacity:1;cursor:default}
+.pp-window-body footer{font-size:10px;color:#88988b;display:flex;justify-content:space-between;gap:20px;line-height:1.8}
+a{color:#386a4b}
+[hidden]{display:none!important}
+
+@container (max-width:780px){
+  .pp-profile-fields{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr}
+  .card{padding:19px}
+  .pp-window-body h1{font-size:26px}
+  .dials{gap:6px}
+  .word{font-size:9px}
+  .dial label{font-size:9px}
+  .pp-window-body footer{display:block}
+}
+
+@media(max-width:780px){
+  .pp-profile-fields{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr}
+  .card{padding:19px}
+  .pp-window-body h1{font-size:26px}
+  .dials{gap:6px}
+  .word{font-size:9px}
+  .dial label{font-size:9px}
+  .pp-window-body footer{display:block}
+  .pp-window.is-open:not(.is-minimized){
+    left:0 !important;
+    top:0 !important;
+    width:100vw !important;
+    height:100vh !important;
+    height:100dvh !important;
+    border-radius:0 !important;
+  }
+  .pp-window.is-open.is-minimized{
+    left:0 !important;
+    top:auto !important;
+    bottom:0 !important;
+    width:100vw !important;
+    border-radius:0 !important;
+  }
+  .pp-titlebar{cursor:default}
+  .pp-resize-handle{display:none !important}
+}
+
+html.pp-embedded,html.pp-embedded body{height:100%;overflow:hidden;background:#f4f6f4}
+html.pp-embedded .pp-host,
+html.pp-embedded .pp-titlebar,
+html.pp-embedded .pp-resize-handle{display:none !important}
+html.pp-embedded .pp-window{
+  display:flex !important;
+  position:static !important;
+  width:100% !important;
+  height:100% !important;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  background:#f4f6f4 !important;
+}
+</style>
+</head>
+<body>
+<div class="pp-host" id="hostPage">
+  <div class="pp-host-header">
+    <strong>≋ &nbsp;Preset Panel</strong>
+  </div>
+  <div class="pp-host-main">
+    <section class="pp-launch-card">
+      <h1>Your experience. The right words.</h1>
+      <p>Choose your approach, tune the details, and stay in control.</p>
+      <div class="pp-launch-actions">
+        <button type="button" id="openPresetPanel" class="pp-open-btn">Open Preset Panel</button>
+        <span class="pp-host-note" id="windowStateNote">Opens in a floating window</span>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div
+  id="presetWindow"
+  class="pp-window"
+  role="dialog"
+  aria-label="PRESET PANEL"
+  aria-hidden="true"
+>
+  <div class="pp-titlebar" id="winTitlebar">
+    <div class="pp-title-left">
+      <span class="pp-dot" aria-hidden="true"></span>
+      <svg class="pp-square-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+        <rect x="9" y="9" width="6" height="6"></rect>
+        <path d="M15 2v2"></path>
+        <path d="M15 20v2"></path>
+        <path d="M2 15h2"></path>
+        <path d="M2 9h2"></path>
+        <path d="M20 15h2"></path>
+        <path d="M20 9h2"></path>
+        <path d="M9 2v2"></path>
+        <path d="M9 20v2"></path>
+      </svg>
+      <span class="pp-title-text">PRESET PANEL</span>
+    </div>
+    <div class="pp-title-actions">
+      <button type="button" id="winMinimize" class="pp-win-btn" title="Minimize" aria-label="Minimize">
+        <svg id="winMinimizeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12h14"></path>
+        </svg>
+      </button>
+      <button type="button" id="winExpand" class="pp-win-btn" title="Expand" aria-label="Expand">
+        <svg id="winExpandIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+          <line x1="21" y1="3" x2="14" y2="10"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+      </button>
+      <button type="button" id="winClose" class="pp-win-btn pp-win-btn--close" title="Close (Esc)" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="pp-window-body" id="winBody">
+    <header><strong>≋ &nbsp;Preset Panel</strong><span class="status" id="status" role="status">● Idle</span></header>
+    <main>
+      <h1>Your experience. The right words.</h1>
+      <p>Choose your approach, tune the details, and stay in control.</p>
+      <div id="connection" class="warning">Live processing is not configured. Your presets and tuning controls are ready; no AI requests will be sent.</div>
+      <section id="review" class="banner" hidden>
+        <h2 id="reviewTitle"></h2>
+        <div id="reason"></div>
+        <textarea id="response" aria-label="Review changes or requested data" placeholder="Add requested information or describe your changes…"></textarea>
+        <div class="actions">
+          <button id="approve" class="primary">Approve & continue</button>
+          <button id="sendChanges">Send changes</button>
+        </div>
+      </section>
+      <div class="grid">
+        <div>
+          <section class="card">
+            <h2>01 &nbsp; Choose a preset</h2>
+            <select id="preset" aria-label="Choose a preset"></select>
+            <div class="meta" id="presetMeta"></div>
+            <div class="line"></div>
+            <h2>02 &nbsp; Tune your approach</h2>
+            <div class="dials" id="dials"></div>
+            <div class="small" id="tuningNote"></div>
+            <div class="line"></div>
+            <div class="row"><h2>03 &nbsp; Add the job posting</h2><span class="small" id="profileState">No saved profile</span></div>
+            <textarea id="job" placeholder="Paste the job posting here…" aria-label="Job posting"></textarea>
+            <div class="row small"><span>Only verified facts. No invented experience.</span><span id="chars">0 characters</span></div>
+            <button id="run" class="primary run" disabled>Run preset ↗</button>
+            <div id="message" class="small" role="alert" style="margin-top:10px"></div>
+          </section>
+          <details class="card">
+            <summary>Your profile & supporting drafts</summary>
+            <p class="small" style="margin-top:15px">Synced automatically from your Active Draftsman Profile.</p>
+            <div id="syncedProfileFields" class="pp-profile-fields">
+              <div class="pp-field">
+                <label for="pfName">Full Name</label>
+                <input id="pfName" type="text" readonly>
+              </div>
+              <div class="pp-field">
+                <label for="pfLocation">Physical Location</label>
+                <input id="pfLocation" type="text" readonly>
+              </div>
+              <div class="pp-field is-full">
+                <label for="pfPortfolioUrl">Portfolio Web Address</label>
+                <input id="pfPortfolioUrl" type="text" readonly>
+              </div>
+              <div class="pp-field is-full">
+                <label for="pfSummary">Professional Executive Summary</label>
+                <textarea id="pfSummary" readonly></textarea>
+              </div>
+              <div class="pp-field is-full">
+                <label for="pfSkills">Key Specialties &amp; Methods</label>
+                <textarea id="pfSkills" readonly></textarea>
+              </div>
+              <div class="pp-field is-full">
+                <label for="pfSoftware">Software &amp; Tool Stack</label>
+                <textarea id="pfSoftware" readonly></textarea>
+              </div>
+              <div class="pp-field is-full">
+                <label for="pfExperience">Professional Work Record</label>
+                <textarea id="pfExperience" readonly style="min-height:140px"></textarea>
+              </div>
+              <div class="pp-field is-full">
+                <label for="pfEducation">Academic Training Facts</label>
+                <textarea id="pfEducation" readonly></textarea>
+              </div>
+              <div class="pp-field is-full">
+                <label for="pfProjects">CAD Portfolio Details</label>
+                <textarea id="pfProjects" readonly></textarea>
+              </div>
+              <div class="pp-field">
+                <label for="pfLanguages">Languages</label>
+                <input id="pfLanguages" type="text" readonly>
+              </div>
+              <div class="pp-field">
+                <label for="pfWorkAuth">Work Authorization</label>
+                <input id="pfWorkAuth" type="text" readonly>
+              </div>
+              <div class="pp-field is-full">
+                <label for="pfCertifications">Licenses &amp; Certifications</label>
+                <textarea id="pfCertifications" readonly></textarea>
+              </div>
+              <div class="pp-field">
+                <label for="pfTargetJobTitles">Target Job Titles</label>
+                <input id="pfTargetJobTitles" type="text" readonly>
+              </div>
+              <div class="pp-field">
+                <label for="pfWorkSetting">Work Setting Preference</label>
+                <select id="pfWorkSetting" disabled>
+                  <option value=""></option>
+                  <option value="Remote">Remote</option>
+                  <option value="Hybrid">Hybrid</option>
+                  <option value="On-site">On-site</option>
+                  <option value="Any">Any</option>
+                </select>
+              </div>
+              <div class="pp-field is-full">
+                <label for="pfLinks">Links</label>
+                <input id="pfLinks" type="text" readonly>
+              </div>
+              <div class="pp-field is-full">
+                <label for="pfProjectNotes">Projects</label>
+                <textarea id="pfProjectNotes" readonly></textarea>
+              </div>
+            </div>
+            <textarea id="profile" hidden readonly aria-hidden="true"></textarea>
+            <label for="drafts">Resume, cover letter, or other input</label>
+            <textarea id="drafts" placeholder="Add drafts needed by review or trimming presets…"></textarea>
+          </details>
+        </div>
+        <div>
+          <section class="card">
+            <div class="row"><h2 style="margin:0">Progress</h2><span id="progress" class="small">Ready when you are</span></div>
+            <div id="steps" class="steps"></div>
+            <div id="stepNote" class="small" style="margin-top:14px"></div>
+          </section>
+          <section class="card">
+            <div class="row"><h2 style="margin:0" id="outputTitle">Your output</h2><button id="copy" disabled>Copy</button></div>
+            <div id="output" class="empty">Your output will appear here after a live run.</div>
+          </section>
+          <details class="card">
+            <summary>Connection requirements</summary>
+            <p class="small" style="margin-top:16px">A backend adapter is required. This page does not contain an API key or send data to an assumed endpoint. See the included integration notes for the unresolved protocol rules.</p>
+            <div class="small" id="configState">Backend adapter: not installed</div>
+          </details>
+        </div>
+      </div>
+      <footer><span>Use only facts from your profile and the job posting.</span><a href="https://docs.google.com/document/d/1-EfZClo_yg4Gw6m_B5j85gStRQArYXmWZHHg2R7UA30/edit" target="_blank" rel="noopener">Career system · Specification v1.0 ↗</a></footer>
+    </main>
+  </div>
+
+  <div class="pp-resize-handle" id="winResize" title="Drag to resize" aria-label="Resize Preset Panel window">
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+      <path d="M9 1L1 9M9 5L5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+    </svg>
+  </div>
+</div>
+
+<script>
+const PRESETS=[{"number": 1, "name": "Match Check", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 2, "name": "Keyword Pull", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 3, "name": "Job Fit Score", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 4, "name": "Salary Check", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 5, "name": "Competency Map", "level": 3, "tuning": "none", "steps": 3, "reviewStops": []}, {"number": 6, "name": "Knockout Check", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 7, "name": "Level Check", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 8, "name": "Strategy Picker", "level": 3, "tuning": "none", "steps": 3, "reviewStops": []}, {"number": 9, "name": "Language Mirror", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 10, "name": "Proof Map", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 11, "name": "Quantify Me", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 12, "name": "Portfolio Picks", "level": 3, "tuning": "none", "steps": 3, "reviewStops": []}, {"number": 13, "name": "Gap Note", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 14, "name": "Adjacent Bridge", "level": 3, "tuning": "none", "steps": 3, "reviewStops": []}, {"number": 15, "name": "Gap Phrases", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 16, "name": "Coverage Report", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 17, "name": "Self-Rubric", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 18, "name": "STAR Builder", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 19, "name": "STAR Bank", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 20, "name": "Interview Prep", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 21, "name": "Likely Question Bank", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 22, "name": "Answer Evidence Map", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 23, "name": "Follow-Up Drill", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 24, "name": "Strong-Answer Signals", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 25, "name": "Red Flag Check", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 26, "name": "Interview Walkthrough", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 27, "name": "Sample Task Plan", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 28, "name": "Question Quality Check", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 29, "name": "Tailor Resume", "level": 2, "tuning": "all", "steps": 1, "reviewStops": [1]}, {"number": 30, "name": "Resume Trim", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 31, "name": "Cover Letter (Confident)", "level": 2, "tuning": "all", "steps": 1, "reviewStops": [1]}, {"number": 32, "name": "Cover Letter (Short)", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 33, "name": "Opening Line", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 34, "name": "Motivation Line", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 35, "name": "Relevant Experience Pick", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 36, "name": "Value Statement", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 37, "name": "Closing Options", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 38, "name": "Four-Paragraph Build", "level": 2, "tuning": "all", "steps": 1, "reviewStops": [1]}, {"number": 39, "name": "Length Trim", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 40, "name": "Strategy Letter: Technical", "level": 2, "tuning": "all", "steps": 1, "reviewStops": [1]}, {"number": 41, "name": "Strategy Letter: Architecture", "level": 2, "tuning": "all", "steps": 1, "reviewStops": [1]}, {"number": 42, "name": "Strategy Letter: Remote", "level": 2, "tuning": "all", "steps": 1, "reviewStops": [1]}, {"number": 43, "name": "Strategy Letter: Growth", "level": 2, "tuning": "all", "steps": 1, "reviewStops": [1]}, {"number": 44, "name": "Strategy Letter: Direct", "level": 2, "tuning": "all", "steps": 1, "reviewStops": [1]}, {"number": 45, "name": "Recruiter Message", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 46, "name": "Follow-Up Email", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 47, "name": "Reference Prep", "level": 1, "tuning": "none", "steps": 0, "reviewStops": []}, {"number": 48, "name": "Honesty Check", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 49, "name": "Eight-Point Review", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 50, "name": "Resume Overlap Check", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 51, "name": "Natural Voice Check", "level": 1, "tuning": "spec-persona", "steps": 0, "reviewStops": []}, {"number": 52, "name": "Package Plan", "level": 4, "tuning": "none", "steps": 7, "reviewStops": [3, 6]}],
+AXES={"Intensity": ["very brief", "brief", "standard", "detailed", "very detailed"], "Tone": ["casual", "friendly", "neutral", "professional", "formal"], "Specificity": ["general", "some detail", "specific", "highly specific", "exact figures from profile"], "Boldness": ["modest", "measured", "confident", "assertive", "strongly assertive"], "Persona": ["early-career", "developing", "established", "senior", "expert"]},
+LEVELS={1:'Solo',2:'Single step with review',3:'Short chain',4:'Full loop'},
+DEFAULTS={Intensity:3,Tone:3,Specificity:3,Boldness:2,Persona:3};
+const $=id=>document.getElementById(id);
+let digits=[],outputs={},pending=null,busy=false,finished=false,adapter=null;
+const values={...DEFAULTS};
+const groups=[['A · Analyze the Job',1,9],['B · Prove Your Fit',10,17],['C · Stories and Interview Prep',18,28],['D · Write',29,47],['E · Review',48,51],['F · Package',52,52]];
+for(const [name,start,end] of groups){const group=document.createElement('optgroup');group.label=name;PRESETS.filter(p=>p.number>=start&&p.number<=end).forEach(p=>{const o=document.createElement('option');o.value=p.number;o.textContent=`${String(p.number).padStart(2,'0')} · ${p.name}`;group.append(o)});$('preset').append(group)}
+const chosen=()=>PRESETS[+$('preset').value-1];
+const enabled=area=>chosen().tuning==='all'||chosen().tuning==='spec-persona'&&['Specificity','Persona'].includes(area);
+Object.entries(AXES).forEach(([area,words])=>{const div=document.createElement('div');div.className='dial';div.id='dial'+area;div.innerHTML=`<label for="range${area}">${area}</label><div class="knob" aria-hidden="true"><span class="needle" id="needle${area}"></span></div><input type="range" id="range${area}" min="1" max="5" step="1" value="${values[area]}"><div class="word" id="word${area}"></div>`;$('dials').append(div);$('range'+area).oninput=()=>{values[area]=+$('range'+area).value;paintDial(area)};paintDial(area)});
+function paintDial(area){$('word'+area).textContent=AXES[area][values[area]-1];$('range'+area).setAttribute('aria-valuetext',AXES[area][values[area]-1]);$('needle'+area).style.transform=`rotate(${(values[area]-3)*60}deg)`}
+function status(text){$('status').textContent='● '+text}
+function controls(){ $('preset').disabled=busy||!!pending;$('job').disabled=busy||!!pending;Object.keys(AXES).forEach(a=>{$('range'+a).disabled=busy||!!pending||!enabled(a);$('dial'+a).classList.toggle('off',!enabled(a))});$('run').disabled=!adapter||busy;$('run').textContent=pending?'Continue →':busy?'Running…':finished?'Run again ↗':'Run preset ↗';$('approve').disabled=busy;$('sendChanges').disabled=busy;}
+function draw(){const host=$('steps');host.replaceChildren();digits.forEach((d,i)=>{const b=document.createElement('button');b.className='step';b.dataset.digit=d;b.textContent=d==='5'?'✓':d==='6'?'—':i+1;b.title=`Step ${i+1}: ${{0:'Not started',1:'Waiting for data',3:'Blocked',4:'Needs review',5:'Done',6:'Skipped'}[d]}`;b.onclick=()=>showOutput(outputs[i+1]||'',`Step ${i+1} output`);host.append(b)});$('progress').textContent=digits.length?`${digits.filter(d=>['5','6'].includes(d)).length} of ${digits.length} resolved`:finished?'Complete':'Single action';}
+function showOutput(text,title='Your output'){$('output').textContent=text||'No output received for this step.';$('output').className=text?'output':'empty';$('outputTitle').textContent=title;$('copy').disabled=!text;}
+function reset(){digits=Array(chosen().steps).fill('0');outputs={};pending=null;finished=false;$('review').hidden=true;$('response').value='';$('message').textContent='';status('Idle');$('presetMeta').textContent=`Level ${chosen().level} · ${LEVELS[chosen().level]} · ${chosen().steps===0?'No numbered steps':chosen().steps+' step'+(chosen().steps===1?'':'s')}`;$('tuningNote').textContent=chosen().tuning==='none'?'This preset does not use tuning.':chosen().tuning==='all'?'All five tuning areas are active.':'Only Specificity and Persona are active.';$('stepNote').textContent=chosen().level===4?'Seven-step package plan; pauses for your review before continuing (review stops at steps 3 and 6).':chosen().level===2?'This preset requires review of step 1.':chosen().level===1?'Solo presets have no numbered steps.':'Three-step chain; pauses for your review before continuing to the next step.';showOutput('');draw();controls()}
+function formatSyncedExperience(list){if(!Array.isArray(list)||list.length===0)return '';return list.map(exp=>{const role=String(exp?.role||'').trim();const company=String(exp?.company||'').trim();const period=String(exp?.period||'').trim();const head=[role&&company?`${role} — ${company}`:(role||company),period?`(${period})`:''].filter(Boolean).join(' ');const bullets=Array.isArray(exp?.bullets)?exp.bullets.filter(b=>String(b||'').trim()).map(b=>`- ${String(b).trim()}`):[];return [head,...bullets].filter(Boolean).join('\n')}).filter(Boolean).join('\n\n')}
+function formatSyncedEducation(list){if(!Array.isArray(list)||list.length===0)return '';return list.map(edu=>{const deg=String(edu?.degree||'').trim();const school=String(edu?.school||'').trim();const period=String(edu?.period||'').trim();const details=String(edu?.details||'').trim();const main=[deg&&school?`${deg} — ${school}`:(deg||school),period?`(${period})`:''].filter(Boolean).join(' ');return details?`${main}\n${details}`:main}).filter(Boolean).join('\n')}
+function formatSyncedProjects(list){if(!Array.isArray(list)||list.length===0)return '';return list.map(pr=>{const name=String(pr?.name||'').trim();const desc=String(pr?.description||'').trim();const tech=Array.isArray(pr?.technologies)&&pr.technologies.length?`Technologies: ${pr.technologies.filter(Boolean).join(', ')}`:'';return [name,desc,tech].filter(Boolean).join('\n')}).filter(Boolean).join('\n\n')}
+function applySyncedProfile(raw){const p=(raw&&typeof raw==='object')?raw:{};const name=String(p.name||'');const location=String(p.location||'');const portfolioUrl=String(p.portfolioUrl||'');const summary=String(p.summary||'');const skills=Array.isArray(p.skills)?p.skills.filter(Boolean).join(', '):'';const software=Array.isArray(p.software)?p.software.filter(Boolean).join(', '):'';const experience=formatSyncedExperience(p.experience);const education=formatSyncedEducation(p.education);const projects=formatSyncedProjects(p.projects);const languages=String(p.languages||'');const certifications=Array.isArray(p.certifications)?p.certifications.filter(Boolean).join('\n'):'';const workAuthorization=String(p.workAuthorization||'');const targetJobTitles=String(p.targetJobTitles||'');const workSetting=['Remote','Hybrid','On-site','Any'].includes(p.workSettingPreference)?p.workSettingPreference:'';const links=String(p.links||'');const projectNotes=String(p.projectNotes||'');$('pfName').value=name;$('pfLocation').value=location;$('pfPortfolioUrl').value=portfolioUrl;$('pfSummary').value=summary;$('pfSkills').value=skills;$('pfSoftware').value=software;$('pfExperience').value=experience;$('pfEducation').value=education;$('pfProjects').value=projects;$('pfLanguages').value=languages;$('pfWorkAuth').value=workAuthorization;$('pfCertifications').value=certifications;$('pfTargetJobTitles').value=targetJobTitles;$('pfWorkSetting').value=workSetting;$('pfLinks').value=links;$('pfProjectNotes').value=projectNotes;const parts=[name&&`Full Name: ${name}`,location&&`Physical Location: ${location}`,portfolioUrl&&`Portfolio Web Address: ${portfolioUrl}`,summary&&`Professional Executive Summary:\n${summary}`,skills&&`Key Specialties & Methods:\n${skills}`,software&&`Software & Tool Stack:\n${software}`,experience&&`Professional Work Record:\n${experience}`,education&&`Academic Training Facts:\n${education}`,projects&&`CAD Portfolio Details:\n${projects}`,languages&&`Languages: ${languages}`,certifications&&`Licenses & Certifications:\n${certifications}`,workAuthorization&&`Work Authorization: ${workAuthorization}`,targetJobTitles&&`Target Job Titles: ${targetJobTitles}`,workSetting&&`Work Setting Preference: ${workSetting}`,links&&`Links: ${links}`,projectNotes&&`Projects:\n${projectNotes}`].filter(Boolean);$('profile').value=parts.join('\n\n');$('profileState').textContent=parts.length>0?'Profile synced':'No saved profile'}
+function loadSyncedProfileFromStorage(){try{const raw=localStorage.getItem('slate_draftman_profile_sync');if(raw){applySyncedProfile(JSON.parse(raw));return}applySyncedProfile(null)}catch{applySyncedProfile(null)}}
+loadSyncedProfileFromStorage();
+window.addEventListener('storage',e=>{if(e.key==='slate_draftman_profile_sync'){loadSyncedProfileFromStorage()}});
+window.__applySyncedProfile=applySyncedProfile;
+function stop(step,digit,reason,item=null){pending={step,digit,item};if(step)digits[step-1]=digit;$('review').hidden=false;$('review').scrollIntoView({behavior:'smooth',block:'nearest'});$('reviewTitle').textContent=digit==='4'?`Step ${step} needs your review`:digit==='3'?'Run blocked':'More information needed';$('reason').textContent=reason;$('approve').hidden=digit!=='4';status(digit==='3'?'Blocked':'Waiting for you');draw()}
+function checkStep(s){const n=Number(s);if(!Number.isInteger(n)||n<1||n>chosen().steps)throw Error('Backend supplied an invalid step number.');return n}
+function event(e){if(finished)throw Error('Received data after COMPLETE.');if(e.kind==='output'){if(typeof e.text!=='string')throw Error('Invalid output.');if(chosen().steps===0){showOutput(e.text);finished=true;status('COMPLETE');draw();return}if(e.step!==undefined)outputs[checkStep(e.step)]=e.text;showOutput(e.text);return}if(e.kind!=='control'||typeof e.message!=='string')throw Error('Invalid backend event.');let m;const s=e.message;if(m=s.match(/^STATUS step=(\d+) line=([013456]+) note=([^\r\n]*)$/)){const step=checkStep(m[1]);if(m[2].length!==chosen().steps)throw Error('Invalid status-line length.');const next=m[2].split('');for(let i=0;i<next.length;i++){if(next[i]!=='0'&&next.slice(0,i).some(d=>!['5','6'].includes(d)))throw Error('Out-of-order status update.')}digits=next;draw();return}if(m=s.match(/^NEED step=(\d+) item=([^\r\n]+)$/)){stop(checkStep(m[1]),'1','Please provide: '+m[2],m[2]);return}if(m=s.match(/^STOP step=(\d+) digit=([134]) reason=([^\r\n]+)$/)){const n=checkStep(m[1]),item=pending?.step===n?pending.item:null;stop(n,m[2],m[3],item);return}if(m=s.match(/^COMPLETE line=([56]+)$/)){if(m[1].length!==chosen().steps||pending)throw Error('Invalid completion.');digits=m[1].split('');finished=true;status('COMPLETE');draw();return}if(chosen().steps===0&&s==='COMPLETE'){finished=true;status('COMPLETE');draw();return}if(/^ERROR (Can't open the config doc\.|Preset \d+ not found\.|Missing prompt text for preset \d+\.|Tuning setting .+ must be a number from 1 to 5\.|Missing section .+\.)$/.test(s))throw Error(s.slice(6));throw Error('Unsupported or unresolved protocol message.');}
+async function submit(messages,start=false){busy=true;controls();status('Running');try{if(start)await adapter.start({preset:chosen(),messages,onEvent:event});else await adapter.resume({messages,onEvent:event});if(!pending&&!finished)throw Error('Connection ended without a stop or completion.')}catch(e){status('Blocked');$('message').textContent=e.message||'Connection failed.'}finally{busy=false;controls()}}
+async function continueRun(changes){if(!pending)return;const text=$('response').value.trim();if((changes||pending.digit!=='4')&&!text){$('response').focus();$('message').textContent='Provide the requested information or changes first.';return}const messages=[];if(text)messages.push(`DATA item=${pending.item||(changes?'changes':'review')}: ${text}`);messages.push(`CONTINUE step=${pending.step}`);pending=null;$('review').hidden=true;$('response').value='';await submit(messages)}
+$('run').onclick=async()=>{if(pending){await continueRun(false);return}if(!$('job').value.trim()){$('message').textContent='Paste a job posting first.';return}reset();if(chosen().level===1&&!adapter.capabilities?.soloResolved){$('message').textContent='The backend must resolve the Solo-level completion format before running.';return}if(chosen().level===2&&!adapter.capabilities?.level2Resolved){$('message').textContent='The backend must resolve the level-2 status-line format before running.';return}if(chosen().level===4&&!adapter.capabilities?.fullLoopConfigured){$('message').textContent='The seven-step preset file and review positions are required.';return}await submit([`RUN preset=${chosen().number}`],true)};
+$('approve').onclick=()=>continueRun(false);
+$('sendChanges').onclick=()=>continueRun(true);
+$('preset').onchange=reset;
+$('job').oninput=()=>$('chars').textContent=`${$('job').value.length} characters`;
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('output').textContent);$('message').textContent='Output copied.'}catch{$('message').textContent='Clipboard unavailable. Select the output and copy manually.'}};
+window.PresetPanel={presets:PRESETS,tuning:AXES,defaults:DEFAULTS,installAdapter(a){if(busy||pending)throw Error('Cannot change adapter during a run.');if(typeof a.start!=='function'||typeof a.resume!=='function')throw Error('Adapter requires start and resume.');adapter=a;$('connection').textContent='Backend adapter installed. Runs send your job posting, profile, and supporting drafts to the configured service.';$('configState').textContent='Backend adapter installed — deployment testing required.';controls()},getInput(){return{job:$('job').value,profile:$('profile').value,drafts:$('drafts').value,tuning:Object.fromEntries(Object.entries(values).filter(([a])=>enabled(a)))}}};
+reset();
+
+/* Floating pop-up window controller */
+(function(){
+  const PRESET_TEXTS = {"1": "# 01 - Match Check\n\n\nLevel: Solo\nPurpose: Compare a job posting against saved profile facts to classify each requirement as Matched, Partial, or Missing.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nCompare {{JOB}} against {{PROFILE}}. List each requirement as Matched, Partial, or Missing, with the profile line that supports it. Don't invent matches.\nOutput: Plain text list of requirements marked Matched, Partial, or Missing with supporting profile lines.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "2": "# 02 - Keyword Pull\n\n\nLevel: Solo\nPurpose: Extract the 15 most important keywords and tools from a job posting and check their presence in the profile.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nList the 15 most important keywords and tools from {{JOB}}. Mark which ones appear in {{PROFILE}} and which don't.\nOutput: Plain text list of 15 keywords and tools marked as present or absent in the profile.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "3": "# 03 - Job Fit Score\n\n\nLevel: Solo\nPurpose: Calculate a 0–100 fit score between a job posting and saved profile facts with three primary reasons.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nScore the fit between {{JOB}} and {{PROFILE}} from 0–100. Show the score and list the three biggest reasons for it.\nOutput: Plain text numeric score from 0–100 followed by three primary reasons.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "4": "# 04 - Salary Check\n\n\nLevel: Solo\nPurpose: Extract listed compensation and benefits from a job posting while noting missing details without estimating.\nInputs: {{JOB}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nFrom {{JOB}}, pull the listed pay range and any benefits mentioned. Note anything missing. Don't estimate pay.\nOutput: Plain text summary of listed pay range, benefits, and missing compensation details.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "5": "# 05 - Competency Map\n\n\nLevel: Short chain\nPurpose: Group job posting requirements into 4–7 competencies with exact posting wording and priority labels.\nInputs: {{JOB}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nStatus line: 000\nLoop instructions: Read the latest status line. Find the first step not marked 5 or 6. Execute that step only. Update its status (0 = Not started, 1 = Waiting for data, 3 = Blocked, 4 = Needs my review, 5 = Done, 6 = Skipped). Stop when its status becomes 1, 3, or 4, and resume only when instructed to continue or when missing information is provided. When every step is 5 or 6, return Complete.\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nName: Group Requirements\nAction: From {{JOB}}, group the requirements into 4–7 competencies without adding requirements the posting doesn't state or strongly imply.\nInput: {{JOB}}\nOutput: Initial list of 4–7 grouped competencies extracted from the posting.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 2 (0100000000 0000000000 0000000000)\nAction: For each competency, list the exact posting wording from {{JOB}} that it came from.\nInput: {{JOB}}\nOutput: Competencies paired with verbatim quotes from the job posting.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 3 (0010000000 0000000000 0000000000)\nAction: Mark each competency and requirement as must-have or nice-to-have based strictly on {{JOB}}.\nInput: {{JOB}}\nOutput: Completed competency map with verbatim posting quotes and must-have or nice-to-have designations.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text list of 4–7 competencies with exact posting quotes and must-have or nice-to-have tags.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "6": "# 06 - Knockout Check\n\n\nLevel: Solo\nPurpose: Identify non-negotiable job requirements and verify whether the profile meets each one.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nFrom {{JOB}}, list any non-negotiable requirements, such as licenses, certifications, software versions, work authorization, or location. Check each against {{PROFILE}} and mark Met, Not met, or Unclear.\nOutput: Plain text list of non-negotiable requirements marked Met, Not met, or Unclear.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "7": "# 07 - Level Check\n\n\nLevel: Solo\nPurpose: Determine the seniority level targeted by a job posting and evaluate profile alignment.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nBased on {{JOB}} and {{PROFILE}}, is this posting aimed at entry, mid, senior, or leadership level? Explain which phrases in the posting show the level and whether my profile matches it.\nOutput: Plain text level determination with supporting posting phrases and profile match explanation.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "8": "# 08 - Strategy Picker\n\n\nLevel: Short chain\nPurpose: Select the best cover letter positioning strategy and a backup based on the job posting and profile.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nStatus line: 000\nLoop instructions: Read the latest status line. Find the first step not marked 5 or 6. Execute that step only. Update its status (0 = Not started, 1 = Waiting for data, 3 = Blocked, 4 = Needs my review, 5 = Done, 6 = Skipped). Stop when its status becomes 1, 3, or 4, and resume only when instructed to continue or when missing information is provided. When every step is 5 or 6, return Complete.\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nAction: Based on {{JOB}} and {{PROFILE}}, evaluate fit across Technical/Engineering, Architecture/Design, Remote/Independent, Entry-Level/Development, and Experienced/Direct.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Candidate alignment assessment across the five positioning strategies.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 2 (0100000000 0000000000 0000000000)\nAction: Identify the top choice and one backup strategy based on {{JOB}} and {{PROFILE}}.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Ranked top strategy and backup strategy selection.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 3 (0010000000 0000000000 0000000000)\nAction: Give the reason for the top choice and the backup choice in two sentences each using only facts from {{JOB}} and {{PROFILE}}.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Final top and backup strategy selections with two-sentence factual justifications each.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text top strategy choice and backup strategy choice, each with a two-sentence justification.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "9": "# 09 - Language Mirror\n\n\nLevel: Solo\nPurpose: Extract exact terms, frameworks, and metrics vocabulary from a job posting and map them to the profile.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nPull the exact terms, frameworks, and metrics vocabulary from {{JOB}}. Show where each term already appears in {{PROFILE}} and where I'd need to use my own wording instead. Don't add buzzwords I haven't used.\nOutput: Plain text mapping of extracted job terms to existing profile occurrences or alternative phrasing notes.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "10": "# 10 - Proof Map\n\n\nLevel: Solo\nPurpose: Map every required job skill to the strongest supporting evidence in the profile and rate proof strength.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nCompare {{JOB}} against {{PROFILE}}. For each skill the job asks for, list the strongest proof I have (a project, a number, a certification, or a sample) and label it Strong, Weak, or None. Don't invent proof.\nOutput: Plain text list of required job skills paired with profile proof and Strong, Weak, or None labels.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "11": "# 11 - Quantify Me\n\n\nLevel: Solo\nPurpose: Identify profile bullets lacking metrics and list the specific questions needed to gather exact figures.\nInputs: {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nLook at each bullet in {{PROFILE}}. Where a number is missing, list the question I'd need to answer to add one (for example, \"How many drawings per month?\"). Don't guess the number.\nOutput: Plain text list of quantification questions corresponding to unquantified profile bullets.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "12": "# 12 - Portfolio Picks\n\n\nLevel: Short chain\nPurpose: Select the top three projects from the profile that best demonstrate the skills requested in the job posting.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nStatus line: 000\nLoop instructions: Read the latest status line. Find the first step not marked 5 or 6. Execute that step only. Update its status (0 = Not started, 1 = Waiting for data, 3 = Blocked, 4 = Needs my review, 5 = Done, 6 = Skipped). Stop when its status becomes 1, 3, or 4, and resume only when instructed to continue or when missing information is provided. When every step is 5 or 6, return Complete.\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nAction: From {{PROFILE}}, pick the 3 projects that best prove the skills requested in {{JOB}}.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Selection of 3 verified projects from the profile aligned to the job posting.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 2 (0100000000 0000000000 0000000000)\nAction: For each of the 3 selected projects, write a one-line description grounded strictly in {{PROFILE}}.\nInput: {{PROFILE}}\nOutput: Three selected projects each paired with a concise one-line factual description.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 3 (0010000000 0000000000 0000000000)\nAction: For each project, state the verified result from {{PROFILE}} that matters most to the employer in {{JOB}}.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Complete list of 3 portfolio projects with one-line descriptions and employer-relevant results.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text list of 3 selected projects, each with a one-line description and relevant outcome.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "13": "# 13 - Gap Note\n\n\nLevel: Solo\nPurpose: Provide an honest cover letter approach for addressing each missing requirement from the job posting.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nBased on {{JOB}} and {{PROFILE}}, what is one honest way to address each Missing requirement in a cover letter? Don't claim experience I don't have.\nOutput: Plain text list of honest cover letter approaches for each missing requirement.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "14": "# 14 - Adjacent Bridge\n\n\nLevel: Short chain\nPurpose: Map missing job requirements to the closest verified experience in the profile using single-sentence bridges.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nStatus line: 000\nLoop instructions: Read the latest status line. Find the first step not marked 5 or 6. Execute that step only. Update its status (0 = Not started, 1 = Waiting for data, 3 = Blocked, 4 = Needs my review, 5 = Done, 6 = Skipped). Stop when its status becomes 1, 3, or 4, and resume only when instructed to continue or when missing information is provided. When every step is 5 or 6, return Complete.\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nAction: Identify every job requirement in {{JOB}} that is missing from {{PROFILE}}.\nInput: {{JOB}}, {{PROFILE}}\nOutput: List of job requirements absent from the profile.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 2 (0100000000 0000000000 0000000000)\nAction: For each missing requirement, find the closest verified experience in {{PROFILE}} without claiming the match is exact.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Pairing of each missing requirement with its closest adjacent profile experience.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 3 (0010000000 0000000000 0000000000)\nAction: Write one sentence mapping each missing requirement to the adjacent experience (\"My work on X uses the same Y skill\") using only facts from {{PROFILE}}.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Final list of single-sentence bridge statements connecting missing requirements to adjacent experience.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text list of single-sentence bridge statements connecting missing requirements to adjacent profile experience.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "15": "# 15 - Gap Phrases\n\n\nLevel: Solo\nPurpose: Draft single-sentence cover letter lines addressing missing job requirements using verified profile facts.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nFor each Missing requirement from {{JOB}}, write one honest sentence I could use in a cover letter, in one of three forms: fast-learning proof, transferable skill, or an offer of a trial project. Use only what's true from {{PROFILE}}.\nOutput: Plain text list of single-sentence cover letter lines categorized by fast-learning proof, transferable skill, or trial project offer.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "16": "# 16 - Coverage Report\n\n\nLevel: Solo\nPurpose: Audit must-have job requirements against profile examples and identify likely interview questions for gaps.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nCheck whether every must-have requirement in {{JOB}} has at least one example in {{PROFILE}}. List the uncovered requirements and the question I'd most likely be asked about each.\nOutput: Plain text list of uncovered must-have requirements paired with the most likely interview question for each.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "17": "# 17 - Self-Rubric\n\n\nLevel: Solo\nPurpose: Score the profile from 1 to 5 on each job competency with a one-sentence justification per score.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nUsing {{JOB}}, score my profile from 1 to 5 on each competency, using this scale: 1 = no evidence, 3 = some evidence, 5 = strong, specific, measurable evidence. Show the reason for each score in one sentence. Be honest. Don't round up.\nOutput: Plain text 1–5 competency scores with a one-sentence factual justification for each.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "18": "# 18 - STAR Builder\n\n\nLevel: Solo\nPurpose: Build a single STAR story from profile details for the top requirement in the job posting.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nUsing {{PROFILE}}, write one STAR story (Situation, Task, Action, Result) for the top requirement in {{JOB}}. Use only details in the profile. If the Result is missing, ask me for the number instead of guessing.\nOutput: Plain text STAR story (Situation, Task, Action, Result) or request for missing result figures.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "19": "# 19 - STAR Bank\n\n\nLevel: Solo\nPurpose: Draft five concise STAR stories under 60 words each from profile facts, tagged by proven skills.\nInputs: {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nFrom {{PROFILE}}, draft 5 STAR stories, each tagged with the skills it proves. Keep each under 60 words. Mark any story that needs a number I haven't given.\nOutput: Plain text set of 5 tagged STAR stories under 60 words each, with missing-metric flags where applicable.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "20": "# 20 - Interview Prep\n\n\nLevel: Solo\nPurpose: Generate eight likely interview questions for a job posting along with short answers based on profile facts.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nGive me 8 likely interview questions for {{JOB}}, with a short answer for each drawn from {{PROFILE}}.\nOutput: Plain text list of 8 likely interview questions paired with short profile-based answers.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "21": "# 21 - Likely Question Bank\n\n\nLevel: Solo\nPurpose: Predict three labeled interview questions (behavioral, situational, technical) for each competency in a job posting.\nInputs: {{JOB}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nFor each competency in {{JOB}}, predict 3 interview questions: one behavioral, one situational, and one technical. Label each with its type.\nOutput: Plain text list of predicted interview questions grouped by competency and labeled behavioral, situational, or technical.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "22": "# 22 - Answer Evidence Map\n\n\nLevel: Solo\nPurpose: Map predicted interview questions to single-line matching examples from the profile.\nInputs: {{JOB}}, {{PROFILE}}, {{PREDICTED_QUESTIONS}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nFor each predicted question about {{JOB}} from {{PREDICTED_QUESTIONS}}, find the best matching example in {{PROFILE}}. Show the example in one line. If there's no match, say so. Don't invent one.\nOutput: Plain text list pairing each predicted question with a one-line profile example or no-match notice.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "23": "# 23 - Follow-Up Drill\n\n\nLevel: Solo\nPurpose: Predict two interviewer follow-up questions for each of the top five interview questions and draft honest answers.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nFor the top 5 likely questions about {{JOB}}, write the two follow-ups an interviewer would probably ask next. Then give me one honest answer for each follow-up using only {{PROFILE}}.\nOutput: Plain text list of top 5 questions, two follow-up questions per item, and profile-grounded answers.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "24": "# 24 - Strong-Answer Signals\n\n\nLevel: Solo\nPurpose: Define strong-answer criteria per job competency and identify which elements the profile can support.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nFor each competency in {{JOB}}, list what a strong answer should include (a clear situation, a specific action, a measurable result, a tradeoff I made). Then tell me which of those signals my profile can support and which I'd need to add from memory.\nOutput: Plain text breakdown of strong-answer signals per competency divided into profile-supported and memory-needed elements.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "25": "# 25 - Red Flag Check\n\n\nLevel: Solo\nPurpose: Identify weak-answer red flags per job competency and check draft answers in the profile against them.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nFor each competency in {{JOB}}, list the weak answers an interviewer would notice, such as vague results, no ownership, or claiming a skill without an example. Check my draft answers in {{PROFILE}} against them and flag any that fall into those traps.\nOutput: Plain text list of weak-answer indicators per competency and flags on any matching traps in profile draft answers.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "26": "# 26 - Interview Walkthrough\n\n\nLevel: Solo\nPurpose: Draft a two-minute interview walkthrough of a typical role task anchored in a real profile example.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nBased on {{JOB}}, write a 2-minute walkthrough I could give in an interview about how I'd approach a typical task for this role. Use a real example from {{PROFILE}} as the base.\nOutput: Plain text 2-minute spoken walkthrough grounded in a verified profile example.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "27": "# 27 - Sample Task Plan\n\n\nLevel: Solo\nPurpose: Outline a two-hour execution plan for a paid sample task based on the job posting.\nInputs: {{JOB}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nThe employer asks for a paid sample task. Based on {{JOB}}, outline a 2-hour plan: what I'd deliver, the steps, and how I'd check my work. Plain text.\nOutput: Plain text 2-hour sample task plan detailing deliverables, steps, and verification checks.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "28": "# 28 - Question Quality Check\n\n\nLevel: Solo\nPurpose: Filter predicted interview questions for duplicates, relevance to job requirements, and protected personal inquiries.\nInputs: {{JOB}}, {{PREDICTED_QUESTIONS}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nRead the predicted questions for {{JOB}} in {{PREDICTED_QUESTIONS}}. Remove any that are duplicates or that aren't tied to a stated job requirement. Flag any question that asks about personal or protected details, and say why.\nOutput: Plain text cleaned list of job-relevant interview questions plus flags and reasons for any protected-detail questions.\nOutput standards:\n- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "29": "# 29 - Tailor Resume\n\n\nLevel: Single step with review\nPurpose: Generate a plain-text resume tailored to the job posting using only verified profile facts.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nIntensity: standard\nTone: neutral\nSpecificity: specific\nBoldness: measured\nPersona: established\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nName: Tailor Resume\nAction: Using only facts from {{PROFILE}}, write a resume tailored to {{JOB}}. Put the most relevant skills and projects first. Don't add any skill, license, or degree that isn't in the profile. Output as plain text with simple headings.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Tailored plain-text resume draft ready for user review.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text tailored resume with simple headings, prioritizing relevant skills and projects.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Formatting: Usually 1 page for students and early-career applicants; professional, consistent, readable font (10–12 pt); clean, organized, easy-to-scan layout; consistent spacing and white space; PDF when submitting if accepted; reverse chronological order within sections; professional, factual, concise style.\n- Structure: FIRST LAST (City, State | Phone | Email | Portfolio / LinkedIn), EDUCATION, EXPERIENCE, PROJECTS, SKILLS (Technical, Languages, Other).\n- Rules & Mistakes to Avoid: No spelling or grammatical errors; include contact information; use strong action verbs instead of passive language; avoid poor organization or excessive wording; demonstrate verifiable results (Action + Context + Method + Result); avoid personal pronouns, unnecessary abbreviations, pictures, age, gender, and references.\nReview stop: yes", "30": "# 30 - Resume Trim\n\n\nLevel: Solo\nPurpose: Condense a tailored resume to fit one page while retaining all dates and employers.\nInputs: {{RESUME}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nShorten {{RESUME}} to one page. Keep every date and employer. Plain text.\nOutput: Plain text one-page resume retaining all original dates and employers.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Formatting: Usually 1 page for students and early-career applicants; professional, consistent, readable font (10–12 pt); clean, organized, easy-to-scan layout; consistent spacing and white space; PDF when submitting if accepted; reverse chronological order within sections; professional, factual, concise style.\n- Structure: FIRST LAST (City, State | Phone | Email | Portfolio / LinkedIn), EDUCATION, EXPERIENCE, PROJECTS, SKILLS (Technical, Languages, Other).\n- Rules & Mistakes to Avoid: No spelling or grammatical errors; include contact information; use strong action verbs instead of passive language; avoid poor organization or excessive wording; demonstrate verifiable results (Action + Context + Method + Result); avoid personal pronouns, unnecessary abbreviations, pictures, age, gender, and references.\nReview stop: no", "31": "# 31 - Cover Letter (Confident)\n\n\nLevel: Single step with review\nPurpose: Draft a plain-text cover letter under 350 words highlighting one matching project from the profile.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nIntensity: standard\nTone: neutral\nSpecificity: specific\nBoldness: measured\nPersona: established\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nName: Cover Letter (Confident)\nAction: Write a cover letter for {{JOB}} using only facts from {{PROFILE}}. Confident tone, under 350 words, three short paragraphs. Name one specific project from my profile that matches the job's top requirement. Plain text, no bullet points.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Three-paragraph plain-text cover letter draft under 350 words ready for user review.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text cover letter under 350 words in three short paragraphs without bullet points.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: yes", "32": "# 32 - Cover Letter (Short)\n\n\nLevel: Solo\nPurpose: Write a concise 150-word plain-text cover letter using only verified profile facts.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nWrite a 150-word cover letter for {{JOB}} using only facts from {{PROFILE}}. Plain text only.\nOutput: Plain text 150-word cover letter.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "33": "# 33 - Opening Line\n\n\nLevel: Solo\nPurpose: Generate three distinct cover letter opening sentences naming the role, company, and verified reason for applying.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nWrite 3 opening sentences for a cover letter to {{JOB}}. Each one names the position and the company, and gives a different reason for applying. Pull the reason only from {{JOB}} or {{PROFILE}}.\nOutput: Plain text list of 3 opening sentences naming the position, company, and distinct grounded reasons for applying.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "34": "# 34 - Motivation Line\n\n\nLevel: Solo\nPurpose: Write a single sentence explaining genuine interest tied to a specific job responsibility without generic praise.\nInputs: {{JOB}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nBased on {{JOB}}, write one sentence explaining why the position interests me, tied to a specific responsibility in the posting. Don't use generic praise for the company.\nOutput: Plain text single sentence linking candidate interest to a specific responsibility in the job posting.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "35": "# 35 - Relevant Experience Pick\n\n\nLevel: Solo\nPurpose: Select the three most relevant profile responsibilities and link each to a job posting requirement in one sentence.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nFrom {{PROFILE}}, pick the 3 responsibilities most relevant to {{JOB}}. For each, write one sentence connecting it to a requirement in the posting.\nOutput: Plain text list of 3 selected responsibilities, each paired with a single connection sentence.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "36": "# 36 - Value Statement\n\n\nLevel: Solo\nPurpose: Draft one sentence stating expected 90-day contributions strictly supported by profile skills and results.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nWrite one value sentence for {{JOB}}: what I'd contribute in my first 90 days, based only on skills and results in {{PROFILE}}. No promises beyond what the profile supports.\nOutput: Plain text single sentence stating evidence-backed 90-day contributions.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "37": "# 37 - Closing Options\n\n\nLevel: Solo\nPurpose: Produce three cover letter closing paragraphs under 40 words each in direct, warm, and brief tones.\nInputs: {{JOB}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nWrite 3 closing paragraphs for a cover letter to {{JOB}}. Vary the tone: direct, warm, and brief. Each one should ask for a conversation and stay under 40 words.\nOutput: Plain text set of 3 closing paragraphs (direct, warm, brief), each under 40 words.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "38": "# 38 - Four-Paragraph Build\n\n\nLevel: Single step with review\nPurpose: Build a structured four-paragraph cover letter of 200–300 words grounded in verified profile facts.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nIntensity: standard\nTone: neutral\nSpecificity: specific\nBoldness: measured\nPersona: established\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nName: Four-Paragraph Build\nAction: Write a cover letter for {{JOB}} in four paragraphs: Introduction (position and interest), Relevant Experience (tied to requirements), Value (what I bring), Closing (interest in discussing next steps). Use only facts from {{PROFILE}}. 200–300 words.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Four-paragraph plain-text cover letter draft (200–300 words) ready for user review.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text four-paragraph cover letter between 200 and 300 words.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: yes", "39": "# 39 - Length Trim\n\n\nLevel: Solo\nPurpose: Condense an existing cover letter to 200 words without dropping any matched job requirement.\nInputs: {{JOB}}, {{COVER_LETTER}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nShorten {{COVER_LETTER}} to 200 words without losing any requirement match from {{JOB}}. Plain text.\nOutput: Plain text trimmed cover letter of 200 words preserving all matched requirements.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "40": "# 40 - Strategy Letter: Technical\n\n\nLevel: Single step with review\nPurpose: Draft a four-paragraph Technical/Engineering cover letter emphasizing precision, documentation, and CAD software.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nIntensity: standard\nTone: neutral\nSpecificity: specific\nBoldness: measured\nPersona: established\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nName: Strategy Letter: Technical\nAction: Write a cover letter for {{JOB}} using the Technical/Engineering approach. Focus on precision, documentation, CAD software, and project responsibilities from {{PROFILE}}. 200–300 words, four paragraphs, plain text.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Technical/Engineering cover letter draft (200–300 words) ready for user review.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text four-paragraph cover letter of 200–300 words focused on technical and engineering execution.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: yes", "41": "# 41 - Strategy Letter: Architecture\n\n\nLevel: Single step with review\nPurpose: Draft a four-paragraph Architecture/Design cover letter emphasizing design thinking, modeling, and visualization.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nIntensity: standard\nTone: neutral\nSpecificity: specific\nBoldness: measured\nPersona: established\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nName: Strategy Letter: Architecture\nAction: Write a cover letter for {{JOB}} using the Architecture/Design approach. Focus on design thinking, modeling, visualization, and problem-solving from {{PROFILE}}. 200–300 words, four paragraphs, plain text.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Architecture/Design cover letter draft (200–300 words) ready for user review.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text four-paragraph cover letter of 200–300 words focused on architecture and design capabilities.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: yes", "42": "# 42 - Strategy Letter: Remote\n\n\nLevel: Single step with review\nPurpose: Draft a four-paragraph Remote/Independent cover letter highlighting organization, written communication, and self-direction.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nIntensity: standard\nTone: neutral\nSpecificity: specific\nBoldness: measured\nPersona: established\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nName: Strategy Letter: Remote\nAction: Write a cover letter for {{JOB}} using the Remote/Independent approach. Focus on organization, written communication, self-directed work, and digital deliverables from {{PROFILE}}. 200–300 words, four paragraphs, plain text.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Remote/Independent cover letter draft (200–300 words) ready for user review.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text four-paragraph cover letter of 200–300 words focused on remote and independent execution.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: yes", "43": "# 43 - Strategy Letter: Growth\n\n\nLevel: Single step with review\nPurpose: Draft a four-paragraph Entry-Level/Development cover letter emphasizing transferable skills, learning, and education.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nIntensity: standard\nTone: neutral\nSpecificity: specific\nBoldness: measured\nPersona: established\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nName: Strategy Letter: Growth\nAction: Write a cover letter for {{JOB}} using the Entry-Level/Development approach. Focus on transferable skills, learning, and education from {{PROFILE}}. Don't claim experience I don't have. 200–300 words, four paragraphs, plain text.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Entry-Level/Development cover letter draft (200–300 words) ready for user review.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text four-paragraph cover letter of 200–300 words focused on transferable skills and growth.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: yes", "44": "# 44 - Strategy Letter: Direct\n\n\nLevel: Single step with review\nPurpose: Draft a four-paragraph Experienced/Direct cover letter centered on proven responsibilities and accomplishments.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nIntensity: standard\nTone: neutral\nSpecificity: specific\nBoldness: measured\nPersona: established\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nName: Strategy Letter: Direct\nAction: Write a cover letter for {{JOB}} using the Experienced/Direct approach. Focus on proven responsibilities and accomplishments from {{PROFILE}} that match the posting. 200–300 words, four paragraphs, plain text.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Experienced/Direct cover letter draft (200–300 words) ready for user review.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text four-paragraph cover letter of 200–300 words focused on direct proven accomplishments.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: yes", "45": "# 45 - Recruiter Message\n\n\nLevel: Solo\nPurpose: Write a concise LinkedIn or email outreach message to a recruiter under 80 words.\nInputs: {{JOB}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nWrite a short LinkedIn or email message to a recruiter about {{JOB}}. Under 80 words. Plain text.\nOutput: Plain text recruiter outreach message under 80 words.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "46": "# 46 - Follow-Up Email\n\n\nLevel: Solo\nPurpose: Draft a follow-up email under 100 words to send seven days after submitting an application.\nInputs: {{JOB}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nWrite a follow-up email I can send 7 days after applying to {{JOB}}. Under 100 words. Plain text.\nOutput: Plain text 7-day follow-up email under 100 words.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "47": "# 47 - Reference Prep\n\n\nLevel: Solo\nPurpose: Prepare a brief note for a professional reference listing three target skills with one profile example each.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nTask:\nWrite a short note I can send to a reference for {{JOB}}, listing the 3 skills I'd like them to confirm, with one example each from {{PROFILE}}.\nOutput: Plain text reference preparation note with 3 skills and one supporting profile example each.\nOutput standards:\n- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\nReview stop: no", "48": "# 48 - Honesty Check\n\n\nLevel: Solo\nPurpose: Audit a draft resume and cover letter against saved profile facts to flag unsupported, vague, or exaggerated claims.\nInputs: {{PROFILE}}, {{RESUME}}, {{COVER_LETTER}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nRead {{RESUME}} and {{COVER_LETTER}} against {{PROFILE}}. Flag any claim that isn't supported, any vague phrase that could be more specific, and any sentence that oversells. Suggest a fix for each.\nOutput: Plain text audit flagging unsupported, vague, or exaggerated claims with suggested fixes.\nOutput standards:\n- Resume Standards:\n  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Formatting: Usually 1 page for students and early-career applicants; professional, consistent, readable font (10–12 pt); clean, organized, easy-to-scan layout; consistent spacing and white space; PDF when submitting if accepted; reverse chronological order within sections; professional, factual, concise style.\n  - Structure: FIRST LAST (City, State | Phone | Email | Portfolio / LinkedIn), EDUCATION, EXPERIENCE, PROJECTS, SKILLS (Technical, Languages, Other).\n  - Rules & Mistakes to Avoid: No spelling or grammatical errors; include contact information; use strong action verbs instead of passive language; avoid poor organization or excessive wording; demonstrate verifiable results (Action + Context + Method + Result); avoid personal pronouns, unnecessary abbreviations, pictures, age, gender, and references.\n- Cover Letter Standards:\n  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n  - Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\n- Analysis & Quality Control Standards:\n  - Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "49": "# 49 - Eight-Point Review\n\n\nLevel: Solo\nPurpose: Evaluate a draft cover letter against eight quality criteria and provide fixes for any failed checks.\nInputs: {{JOB}}, {{COVER_LETTER}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nReview {{COVER_LETTER}} for {{JOB}} against these checks: addresses the actual job, explains why I'm qualified, uses examples instead of generic claims, sounds natural, doesn't repeat the resume word for word, has no unnecessary personal details, has an appropriate tone, and is concise. Score each check Pass or Fix, and show a fix for each one marked Fix.\nOutput: Plain text Pass/Fix scorecard across 8 criteria with concrete fixes for every item marked Fix.\nOutput standards:\n- Cover Letter Standards:\n  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n  - Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\n- Analysis & Quality Control Standards:\n  - Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "50": "# 50 - Resume Overlap Check\n\n\nLevel: Solo\nPurpose: Detect sentences in a cover letter that repeat resume bullets verbatim and rewrite them to explain context.\nInputs: {{JOB}}, {{RESUME}}, {{COVER_LETTER}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nCompare {{COVER_LETTER}} with {{RESUME}} for {{JOB}}. List any sentence that repeats a resume bullet nearly word for word, and suggest a rewrite that adds the reason behind the experience instead.\nOutput: Plain text list of redundant cover letter sentences paired with context-focused rewrites.\nOutput standards:\n- Resume Standards:\n  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Formatting: Usually 1 page for students and early-career applicants; professional, consistent, readable font (10–12 pt); clean, organized, easy-to-scan layout; consistent spacing and white space; PDF when submitting if accepted; reverse chronological order within sections; professional, factual, concise style.\n  - Structure: FIRST LAST (City, State | Phone | Email | Portfolio / LinkedIn), EDUCATION, EXPERIENCE, PROJECTS, SKILLS (Technical, Languages, Other).\n  - Rules & Mistakes to Avoid: No spelling or grammatical errors; include contact information; use strong action verbs instead of passive language; avoid poor organization or excessive wording; demonstrate verifiable results (Action + Context + Method + Result); avoid personal pronouns, unnecessary abbreviations, pictures, age, gender, and references.\n- Cover Letter Standards:\n  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n  - Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\n- Analysis & Quality Control Standards:\n  - Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "51": "# 51 - Natural Voice Check\n\n\nLevel: Solo\nPurpose: Identify stiff, buzzword-heavy, or template-sounding sentences in a cover letter and suggest plainer alternatives.\nInputs: {{JOB}}, {{COVER_LETTER}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nSpecificity: specific\nPersona: established\nTask:\nRead {{COVER_LETTER}} for {{JOB}} aloud in your head. Flag any sentence that sounds stiff, uses buzzwords, or reads like a template. Suggest a plainer version of each.\nOutput: Plain text list of stiff or buzzword-heavy sentences with plainer rewrites.\nOutput standards:\n- Cover Letter Standards:\n  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n  - Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\n- Analysis & Quality Control Standards:\n  - Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: no", "52": "# 52 - Package Plan\n\n\nLevel: Full loop\nPurpose: Assemble a complete job application package plan selecting resume version, cover letter strategy, portfolio project, and interview stories.\nInputs: {{JOB}}, {{PROFILE}}\nHeader: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.\nStatus line: 0000000\nLoop instructions: Read the latest status line. Find the first step not marked 5 or 6. Execute that step only. Update its status (0 = Not started, 1 = Waiting for data, 3 = Blocked, 4 = Needs my review, 5 = Done, 6 = Skipped). Stop when its status becomes 1, 3, or 4, and resume only when instructed to continue or when missing information is provided. When every step is 5 or 6, return Complete.\nTask:\nStep 1 (1000000000 0000000000 0000000000)\nAction: Extract the core requirements and target role focus from {{JOB}} against verified facts in {{PROFILE}}.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Verified alignment summary of job requirements against profile facts.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 2 (0100000000 0000000000 0000000000)\nAction: Determine which resume version to use for {{JOB}} based strictly on {{PROFILE}}.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Recommended resume version selection grounded in profile history.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 3 (0010000000 0000000000 0000000000)\nInput: {{JOB}}, {{PROFILE}}\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 4 (0001000000 0000000000 0000000000)\nAction: Select which verified project from {{PROFILE}} to feature in the portfolio for {{JOB}}.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Chosen portfolio project from the profile with relevance rationale.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 5 (0000100000 0000000000 0000000000)\nAction: Select two verified experience stories from {{PROFILE}} to prepare for {{JOB}} interviews.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Two selected interview stories drawn from verified profile facts.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 6 (0000010000 0000000000 0000000000)\nAction: Compile the resume version, cover letter strategy, portfolio project, and two interview stories for user review before finalizing.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Consolidated draft package selections awaiting user review.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\n\n\nStep 7 (0000001000 0000000000 0000000000)\nAction: Output the complete, approved application package plan for {{JOB}} using only facts from {{PROFILE}}.\nInput: {{JOB}}, {{PROFILE}}\nOutput: Final plain-text application package plan specifying resume version, cover letter strategy, portfolio project, and two interview stories.\nStatus effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it\nOutput: Plain text application package plan specifying resume version, cover letter strategy, portfolio project, and two interview stories.\nOutput standards:\n- Resume Standards:\n  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Formatting: Usually 1 page for students and early-career applicants; professional, consistent, readable font (10–12 pt); clean, organized, easy-to-scan layout; consistent spacing and white space; PDF when submitting if accepted; reverse chronological order within sections; professional, factual, concise style.\n  - Structure: FIRST LAST (City, State | Phone | Email | Portfolio / LinkedIn), EDUCATION, EXPERIENCE, PROJECTS, SKILLS (Technical, Languages, Other).\n  - Rules & Mistakes to Avoid: No spelling or grammatical errors; include contact information; use strong action verbs instead of passive language; avoid poor organization or excessive wording; demonstrate verifiable results (Action + Context + Method + Result); avoid personal pronouns, unnecessary abbreviations, pictures, age, gender, and references.\n- Cover Letter Standards:\n  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of \"I\"; keep the letter factual; use complete paragraphs (not bullet points).\n  - Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.\n- Analysis & Quality Control Standards:\n  - Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.\n  - Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.\nReview stop: yes (Steps 3 and 6)"};
+
+  const isEmbedded=new URLSearchParams(window.location.search).get('embed')==='1';
+  if(isEmbedded){
+    document.documentElement.classList.add('pp-embedded');
+    if(window.parent && window.parent!==window){
+      let seq=0;
+      let activeRun=null;
+      const inflight=new Map();
+      window.addEventListener('message',e=>{
+        if(e.origin!==window.location.origin)return;
+        const d=e.data;
+        if(!d)return;
+        if(d.type==='preset-panel:profile'){
+          if(typeof window.__applySyncedProfile==='function'){
+            window.__applySyncedProfile(d.profile||null);
+          }
+          return;
+        }
+        if(d.type!=='preset-panel:result' || !inflight.has(d.runId))return;
+        const entry=inflight.get(d.runId);
+        inflight.delete(d.runId);
+        if(d.ok)entry.resolve(String(d.text||''));
+        else entry.reject(new Error(d.error||'AI chat request failed.'));
+      });
+      window.parent.postMessage({type:'preset-panel:ready'},window.location.origin);
+      function callChat(payload){
+        const runId='pp-'+Date.now()+'-'+(++seq);
+        return new Promise((resolve,reject)=>{
+          inflight.set(runId,{resolve,reject});
+          window.parent.postMessage(
+            {type:'preset-panel:run',runId,...payload},
+            window.location.origin
+          );
+        });
+      }
+      window.PresetPanel.installAdapter({
+        capabilities:{soloResolved:true,level2Resolved:true,fullLoopConfigured:true},
+        async start({preset,onEvent}){
+          const presetText=PRESET_TEXTS[String(preset.number)];
+          if(!presetText){
+            throw new Error('Preset '+preset.number+' prompt text is missing.');
+          }
+          const jobText=$('job').value.trim();
+          const message=presetText+'\n\n'+jobText;
+          const totalSteps=Number(preset.steps||0);
+          const replyText=await callChat({
+            action:'start',
+            presetNumber:preset.number,
+            presetName:preset.name,
+            steps:totalSteps,
+            stepNumber:totalSteps>0?1:0,
+            message
+          });
+          if(totalSteps===0){
+            onEvent({kind:'output',text:replyText});
+            return;
+          }
+          const lineDigits=Array(totalSteps).fill('0');
+          lineDigits[0]='4';
+          activeRun={
+            preset,
+            currentStep:1,
+            digits:lineDigits
+          };
+          onEvent({kind:'output',step:1,text:replyText});
+          onEvent({kind:'control',message:'STATUS step=1 line='+lineDigits.join('')+' note=Step 1 ready for review'});
+          onEvent({
+            kind:'control',
+            message:'STOP step=1 digit=4 reason='+(totalSteps===1
+              ?'Review the Step 1 output above, then click Approve & continue or Send changes.'
+              :'Step 1 is complete. Review the output, then click Approve & continue for Step 2 or Send changes.')
+          });
+        },
+        async resume({messages,onEvent}){
+          if(!activeRun){
+            throw new Error('No active multi-step preset run.');
+          }
+          let isChanges=false;
+          let noteText='';
+          for(const m of (messages||[])){
+            if(typeof m!=='string')continue;
+            const mc=m.match(/^DATA item=changes:\s*([\s\S]*)$/);
+            if(mc){isChanges=true;noteText=mc[1].trim();break;}
+            const mr=m.match(/^DATA item=review:\s*([\s\S]*)$/);
+            if(mr){noteText=mr[1].trim();}
+          }
+          const preset=activeRun.preset;
+          const totalSteps=Number(preset.steps||0);
+          const step=activeRun.currentStep;
+
+          if(isChanges){
+            const revisedText=await callChat({
+              action:'revise',
+              presetNumber:preset.number,
+              presetName:preset.name,
+              steps:totalSteps,
+              stepNumber:step,
+              message:noteText
+            });
+            onEvent({kind:'output',step,text:revisedText});
+            onEvent({
+              kind:'control',
+              message:'STOP step='+step+' digit=4 reason=Revised Step '+step+'. Review the update, then click Approve & continue or Send changes.'
+            });
+            return;
+          }
+
+          activeRun.digits[step-1]='5';
+          if(step>=totalSteps){
+            const finalLine=activeRun.digits.join('');
+            activeRun=null;
+            onEvent({kind:'control',message:'COMPLETE line='+finalLine});
+            return;
+          }
+
+          const nextStep=step+1;
+          activeRun.currentStep=nextStep;
+          const continueMsg=noteText
+            ?('Approved. Continue to Step '+nextStep+'.\n\n'+noteText)
+            :('Approved. Continue to Step '+nextStep+'.');
+          const nextText=await callChat({
+            action:'continue',
+            presetNumber:preset.number,
+            presetName:preset.name,
+            steps:totalSteps,
+            stepNumber:nextStep,
+            message:continueMsg
+          });
+          onEvent({kind:'output',step:nextStep,text:nextText});
+
+          const reviewStops=Array.isArray(preset.reviewStops)?preset.reviewStops:[];
+          const shouldPause=nextStep<totalSteps || reviewStops.includes(nextStep);
+          if(shouldPause){
+            activeRun.digits[nextStep-1]='4';
+            onEvent({kind:'control',message:'STATUS step='+nextStep+' line='+activeRun.digits.join('')+' note=Step '+nextStep+' ready for review'});
+            onEvent({
+              kind:'control',
+              message:'STOP step='+nextStep+' digit=4 reason='+(nextStep<totalSteps
+                ?('Step '+nextStep+' is complete. Review the output, then click Approve & continue for Step '+(nextStep+1)+' or Send changes.')
+                :('Step '+nextStep+' is complete. Review the output, then click Approve & continue or Send changes.'))
+            });
+            return;
+          }
+
+          activeRun.digits[nextStep-1]='5';
+          const completeLine=activeRun.digits.join('');
+          activeRun=null;
+          onEvent({kind:'control',message:'COMPLETE line='+completeLine});
+        }
+      });
+      $('connection').textContent='Connected to XELIME Intelligence AI chat. All 52 presets are ready; no profile is included.';
+      $('configState').textContent='XELIME Intelligence AI chat bridge active (all 52 presets).';
+    }
+    return;
+  }
+  const MIN_W=320,MIN_H=260,TITLE_H=40,MOBILE_BP=780;
+  const win=$('presetWindow'),openBtn=$('openPresetPanel'),minBtn=$('winMinimize'),expBtn=$('winExpand'),closeBtn=$('winClose'),titlebar=$('winTitlebar'),resizeEl=$('winResize'),noteEl=$('windowStateNote'),minIcon=$('winMinimizeIcon'),expIcon=$('winExpandIcon');
+  let isOpen=false,isMinimized=false,isExpanded=false,dragState=null;
+  function defaultRect(){
+    const vw=window.innerWidth||1280,vh=window.innerHeight||800;
+    const width=Math.max(MIN_W,Math.min(1060,vw-48));
+    const height=Math.max(MIN_H,Math.min(720,vh-80));
+    return {x:Math.max(0,Math.round((vw-width)/2)),y:Math.max(0,Math.round((vh-height)/2)),width,height};
+  }
+  let rect=defaultRect();
+  function clampPos(x,y,w,h){
+    const vw=window.innerWidth||1280,vh=window.innerHeight||800;
+    const effH=isMinimized?TITLE_H:h;
+    return {
+      x:Math.max(0,Math.min(x,Math.max(0,vw-w))),
+      y:Math.max(0,Math.min(y,Math.max(0,vh-effH)))
+    };
+  }
+  function applyRect(){
+    const vw=window.innerWidth||1280,vh=window.innerHeight||800;
+    rect.width=Math.max(MIN_W,Math.min(rect.width,vw));
+    rect.height=Math.max(MIN_H,Math.min(rect.height,vh));
+    const pos=clampPos(rect.x,rect.y,rect.width,rect.height);
+    rect.x=pos.x;rect.y=pos.y;
+    win.style.left=rect.x+'px';
+    win.style.top=rect.y+'px';
+    win.style.width=rect.width+'px';
+    win.style.height=rect.height+'px';
+  }
+  function renderWindow(){
+    win.classList.toggle('is-open',isOpen);
+    win.classList.toggle('is-minimized',isMinimized);
+    win.classList.toggle('is-expanded',isExpanded);
+    win.setAttribute('aria-hidden',isOpen?'false':'true');
+    minBtn.title=isMinimized?'Restore':'Minimize';
+    minBtn.setAttribute('aria-label',isMinimized?'Restore':'Minimize');
+    minIcon.innerHTML=isMinimized
+      ?'<polyline points="18 15 12 9 6 15"></polyline>'
+      :'<path d="M5 12h14"></path>';
+    expBtn.title=isExpanded?'Restore size':'Expand';
+    expBtn.setAttribute('aria-label',isExpanded?'Restore size':'Expand');
+    expIcon.innerHTML=isExpanded
+      ?'<polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line>'
+      :'<polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line>';
+    if(!isOpen){
+      noteEl.textContent='Opens in a floating window';
+    }else if(isMinimized){
+      noteEl.textContent='Window minimized — click Open Preset Panel to restore';
+    }else if(isExpanded){
+      noteEl.textContent='Preset Panel is expanded full screen';
+    }else{
+      noteEl.textContent='Preset Panel window is open';
+    }
+    applyRect();
+  }
+  openBtn.onclick=()=>{
+    if(!isOpen)rect=defaultRect();
+    isOpen=true;
+    isMinimized=false;
+    renderWindow();
+    $('preset').focus();
+  };
+  minBtn.onclick=()=>{
+    isMinimized=!isMinimized;
+    renderWindow();
+  };
+  expBtn.onclick=()=>{
+    if(isMinimized){
+      isMinimized=false;
+      isExpanded=true;
+    }else{
+      isExpanded=!isExpanded;
+    }
+    renderWindow();
+  };
+  closeBtn.onclick=()=>{
+    isOpen=false;
+    isMinimized=false;
+    isExpanded=false;
+    renderWindow();
+    openBtn.focus();
+  };
+  window.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&isOpen){
+      closeBtn.click();
+    }
+  });
+  window.addEventListener('resize',applyRect);
+  titlebar.addEventListener('mousedown',e=>{
+    if(e.button!==0||e.target.closest('button'))return;
+    if(window.innerWidth<=MOBILE_BP||(isExpanded&&!isMinimized))return;
+    e.preventDefault();
+    dragState={type:'drag',mx:e.clientX,my:e.clientY,x:rect.x,y:rect.y,w:rect.width,h:rect.height};
+    win.classList.add('is-dragging','is-interacting');
+  });
+  resizeEl.addEventListener('mousedown',e=>{
+    if(e.button!==0||window.innerWidth<=MOBILE_BP||isExpanded||isMinimized)return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragState={type:'resize',mx:e.clientX,my:e.clientY,x:rect.x,y:rect.y,w:rect.width,h:rect.height};
+    win.classList.add('is-interacting');
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!dragState)return;
+    const dx=e.clientX-dragState.mx,dy=e.clientY-dragState.my;
+    const vw=window.innerWidth||1280,vh=window.innerHeight||800;
+    if(dragState.type==='drag'){
+      const pos=clampPos(dragState.x+dx,dragState.y+dy,rect.width,rect.height);
+      rect.x=pos.x;rect.y=pos.y;
+    }else{
+      rect.width=Math.max(MIN_W,Math.min(vw-rect.x,dragState.w+dx));
+      rect.height=Math.max(MIN_H,Math.min(vh-rect.y,dragState.h+dy));
+    }
+    applyRect();
+  });
+  window.addEventListener('mouseup',()=>{
+    if(!dragState)return;
+    dragState=null;
+    win.classList.remove('is-dragging','is-interacting');
+  });
+  renderWindow();
+  if(location.protocol!=='file:'){
+    fetch('xelime-adapter.js',{method:'HEAD'}).then(r=>{
+      const ct=(r.headers.get('content-type')||'').toLowerCase();
+      if(r.ok && ct.includes('javascript')){
+        const s=document.createElement('script');
+        s.src='xelime-adapter.js';
+        document.body.appendChild(s);
+      }
+    }).catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>

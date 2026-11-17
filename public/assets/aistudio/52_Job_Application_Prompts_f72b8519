@@ -1,0 +1,1370 @@
+﻿52 Compiled Job Application Presets
+Compiler Settings: Intensity = 3 (standard) | Tone = 3 (neutral) | Specificity = 3 (specific) | Boldness = 2 (measured) | Persona = 3 (established)
+________________
+
+
+
+
+
+
+# 01 - Match Check
+
+
+Level: Solo
+Purpose: Compare a job posting against saved profile facts to classify each requirement as Matched, Partial, or Missing.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Compare {{JOB}} against {{PROFILE}}. List each requirement as Matched, Partial, or Missing, with the profile line that supports it. Don't invent matches.
+Output: Plain text list of requirements marked Matched, Partial, or Missing with supporting profile lines.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 02 - Keyword Pull
+
+
+Level: Solo
+Purpose: Extract the 15 most important keywords and tools from a job posting and check their presence in the profile.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+List the 15 most important keywords and tools from {{JOB}}. Mark which ones appear in {{PROFILE}} and which don't.
+Output: Plain text list of 15 keywords and tools marked as present or absent in the profile.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 03 - Job Fit Score
+
+
+Level: Solo
+Purpose: Calculate a 0–100 fit score between a job posting and saved profile facts with three primary reasons.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Score the fit between {{JOB}} and {{PROFILE}} from 0–100. Show the score and list the three biggest reasons for it.
+Output: Plain text numeric score from 0–100 followed by three primary reasons.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 04 - Salary Check
+
+
+Level: Solo
+Purpose: Extract listed compensation and benefits from a job posting while noting missing details without estimating.
+Inputs: {{JOB}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+From {{JOB}}, pull the listed pay range and any benefits mentioned. Note anything missing. Don't estimate pay.
+Output: Plain text summary of listed pay range, benefits, and missing compensation details.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+
+
+# 05 - Competency Map
+
+
+Level: Short chain
+Purpose: Group job posting requirements into 4–7 competencies with exact posting wording and priority labels.
+Inputs: {{JOB}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Status line: 000
+Loop instructions: Read the latest status line. Find the first step not marked 5 or 6. Execute that step only. Update its status (0 = Not started, 1 = Waiting for data, 3 = Blocked, 4 = Needs my review, 5 = Done, 6 = Skipped). Stop when its status becomes 1, 3, or 4, and resume only when instructed to continue or when missing information is provided. When every step is 5 or 6, return Complete.
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Name: Group Requirements
+Action: From {{JOB}}, group the requirements into 4–7 competencies without adding requirements the posting doesn't state or strongly imply.
+Input: {{JOB}}
+Output: Initial list of 4–7 grouped competencies extracted from the posting.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 2 (0100000000 0000000000 0000000000)
+Action: For each competency, list the exact posting wording from {{JOB}} that it came from.
+Input: {{JOB}}
+Output: Competencies paired with verbatim quotes from the job posting.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 3 (0010000000 0000000000 0000000000)
+Action: Mark each competency and requirement as must-have or nice-to-have based strictly on {{JOB}}.
+Input: {{JOB}}
+Output: Completed competency map with verbatim posting quotes and must-have or nice-to-have designations.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text list of 4–7 competencies with exact posting quotes and must-have or nice-to-have tags.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 06 - Knockout Check
+
+
+Level: Solo
+Purpose: Identify non-negotiable job requirements and verify whether the profile meets each one.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+From {{JOB}}, list any non-negotiable requirements, such as licenses, certifications, software versions, work authorization, or location. Check each against {{PROFILE}} and mark Met, Not met, or Unclear.
+Output: Plain text list of non-negotiable requirements marked Met, Not met, or Unclear.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 07 - Level Check
+
+
+Level: Solo
+Purpose: Determine the seniority level targeted by a job posting and evaluate profile alignment.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Based on {{JOB}} and {{PROFILE}}, is this posting aimed at entry, mid, senior, or leadership level? Explain which phrases in the posting show the level and whether my profile matches it.
+Output: Plain text level determination with supporting posting phrases and profile match explanation.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+
+
+# 08 - Strategy Picker
+
+
+Level: Short chain
+Purpose: Select the best cover letter positioning strategy and a backup based on the job posting and profile.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Status line: 000
+Loop instructions: Read the latest status line. Find the first step not marked 5 or 6. Execute that step only. Update its status (0 = Not started, 1 = Waiting for data, 3 = Blocked, 4 = Needs my review, 5 = Done, 6 = Skipped). Stop when its status becomes 1, 3, or 4, and resume only when instructed to continue or when missing information is provided. When every step is 5 or 6, return Complete.
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Action: Based on {{JOB}} and {{PROFILE}}, evaluate fit across Technical/Engineering, Architecture/Design, Remote/Independent, Entry-Level/Development, and Experienced/Direct.
+Input: {{JOB}}, {{PROFILE}}
+Output: Candidate alignment assessment across the five positioning strategies.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 2 (0100000000 0000000000 0000000000)
+Action: Identify the top choice and one backup strategy based on {{JOB}} and {{PROFILE}}.
+Input: {{JOB}}, {{PROFILE}}
+Output: Ranked top strategy and backup strategy selection.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 3 (0010000000 0000000000 0000000000)
+Action: Give the reason for the top choice and the backup choice in two sentences each using only facts from {{JOB}} and {{PROFILE}}.
+Input: {{JOB}}, {{PROFILE}}
+Output: Final top and backup strategy selections with two-sentence factual justifications each.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text top strategy choice and backup strategy choice, each with a two-sentence justification.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 09 - Language Mirror
+
+
+Level: Solo
+Purpose: Extract exact terms, frameworks, and metrics vocabulary from a job posting and map them to the profile.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Pull the exact terms, frameworks, and metrics vocabulary from {{JOB}}. Show where each term already appears in {{PROFILE}} and where I'd need to use my own wording instead. Don't add buzzwords I haven't used.
+Output: Plain text mapping of extracted job terms to existing profile occurrences or alternative phrasing notes.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 10 - Proof Map
+
+
+Level: Solo
+Purpose: Map every required job skill to the strongest supporting evidence in the profile and rate proof strength.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Compare {{JOB}} against {{PROFILE}}. For each skill the job asks for, list the strongest proof I have (a project, a number, a certification, or a sample) and label it Strong, Weak, or None. Don't invent proof.
+Output: Plain text list of required job skills paired with profile proof and Strong, Weak, or None labels.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 11 - Quantify Me
+
+
+Level: Solo
+Purpose: Identify profile bullets lacking metrics and list the specific questions needed to gather exact figures.
+Inputs: {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Look at each bullet in {{PROFILE}}. Where a number is missing, list the question I'd need to answer to add one (for example, "How many drawings per month?"). Don't guess the number.
+Output: Plain text list of quantification questions corresponding to unquantified profile bullets.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+
+
+# 12 - Portfolio Picks
+
+
+Level: Short chain
+Purpose: Select the top three projects from the profile that best demonstrate the skills requested in the job posting.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Status line: 000
+Loop instructions: Read the latest status line. Find the first step not marked 5 or 6. Execute that step only. Update its status (0 = Not started, 1 = Waiting for data, 3 = Blocked, 4 = Needs my review, 5 = Done, 6 = Skipped). Stop when its status becomes 1, 3, or 4, and resume only when instructed to continue or when missing information is provided. When every step is 5 or 6, return Complete.
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Action: From {{PROFILE}}, pick the 3 projects that best prove the skills requested in {{JOB}}.
+Input: {{JOB}}, {{PROFILE}}
+Output: Selection of 3 verified projects from the profile aligned to the job posting.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 2 (0100000000 0000000000 0000000000)
+Action: For each of the 3 selected projects, write a one-line description grounded strictly in {{PROFILE}}.
+Input: {{PROFILE}}
+Output: Three selected projects each paired with a concise one-line factual description.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 3 (0010000000 0000000000 0000000000)
+Action: For each project, state the verified result from {{PROFILE}} that matters most to the employer in {{JOB}}.
+Input: {{JOB}}, {{PROFILE}}
+Output: Complete list of 3 portfolio projects with one-line descriptions and employer-relevant results.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text list of 3 selected projects, each with a one-line description and relevant outcome.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 13 - Gap Note
+
+
+Level: Solo
+Purpose: Provide an honest cover letter approach for addressing each missing requirement from the job posting.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Based on {{JOB}} and {{PROFILE}}, what is one honest way to address each Missing requirement in a cover letter? Don't claim experience I don't have.
+Output: Plain text list of honest cover letter approaches for each missing requirement.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+
+
+# 14 - Adjacent Bridge
+
+
+Level: Short chain
+Purpose: Map missing job requirements to the closest verified experience in the profile using single-sentence bridges.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Status line: 000
+Loop instructions: Read the latest status line. Find the first step not marked 5 or 6. Execute that step only. Update its status (0 = Not started, 1 = Waiting for data, 3 = Blocked, 4 = Needs my review, 5 = Done, 6 = Skipped). Stop when its status becomes 1, 3, or 4, and resume only when instructed to continue or when missing information is provided. When every step is 5 or 6, return Complete.
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Action: Identify every job requirement in {{JOB}} that is missing from {{PROFILE}}.
+Input: {{JOB}}, {{PROFILE}}
+Output: List of job requirements absent from the profile.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 2 (0100000000 0000000000 0000000000)
+Action: For each missing requirement, find the closest verified experience in {{PROFILE}} without claiming the match is exact.
+Input: {{JOB}}, {{PROFILE}}
+Output: Pairing of each missing requirement with its closest adjacent profile experience.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 3 (0010000000 0000000000 0000000000)
+Action: Write one sentence mapping each missing requirement to the adjacent experience ("My work on X uses the same Y skill") using only facts from {{PROFILE}}.
+Input: {{JOB}}, {{PROFILE}}
+Output: Final list of single-sentence bridge statements connecting missing requirements to adjacent experience.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text list of single-sentence bridge statements connecting missing requirements to adjacent profile experience.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 15 - Gap Phrases
+
+
+Level: Solo
+Purpose: Draft single-sentence cover letter lines addressing missing job requirements using verified profile facts.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+For each Missing requirement from {{JOB}}, write one honest sentence I could use in a cover letter, in one of three forms: fast-learning proof, transferable skill, or an offer of a trial project. Use only what's true from {{PROFILE}}.
+Output: Plain text list of single-sentence cover letter lines categorized by fast-learning proof, transferable skill, or trial project offer.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+# 16 - Coverage Report
+
+
+Level: Solo
+Purpose: Audit must-have job requirements against profile examples and identify likely interview questions for gaps.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Check whether every must-have requirement in {{JOB}} has at least one example in {{PROFILE}}. List the uncovered requirements and the question I'd most likely be asked about each.
+Output: Plain text list of uncovered must-have requirements paired with the most likely interview question for each.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 17 - Self-Rubric
+
+
+Level: Solo
+Purpose: Score the profile from 1 to 5 on each job competency with a one-sentence justification per score.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Using {{JOB}}, score my profile from 1 to 5 on each competency, using this scale: 1 = no evidence, 3 = some evidence, 5 = strong, specific, measurable evidence. Show the reason for each score in one sentence. Be honest. Don't round up.
+Output: Plain text 1–5 competency scores with a one-sentence factual justification for each.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 18 - STAR Builder
+
+
+Level: Solo
+Purpose: Build a single STAR story from profile details for the top requirement in the job posting.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+Using {{PROFILE}}, write one STAR story (Situation, Task, Action, Result) for the top requirement in {{JOB}}. Use only details in the profile. If the Result is missing, ask me for the number instead of guessing.
+Output: Plain text STAR story (Situation, Task, Action, Result) or request for missing result figures.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 19 - STAR Bank
+
+
+Level: Solo
+Purpose: Draft five concise STAR stories under 60 words each from profile facts, tagged by proven skills.
+Inputs: {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+From {{PROFILE}}, draft 5 STAR stories, each tagged with the skills it proves. Keep each under 60 words. Mark any story that needs a number I haven't given.
+Output: Plain text set of 5 tagged STAR stories under 60 words each, with missing-metric flags where applicable.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 20 - Interview Prep
+
+
+Level: Solo
+Purpose: Generate eight likely interview questions for a job posting along with short answers based on profile facts.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+Give me 8 likely interview questions for {{JOB}}, with a short answer for each drawn from {{PROFILE}}.
+Output: Plain text list of 8 likely interview questions paired with short profile-based answers.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 21 - Likely Question Bank
+
+
+Level: Solo
+Purpose: Predict three labeled interview questions (behavioral, situational, technical) for each competency in a job posting.
+Inputs: {{JOB}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+For each competency in {{JOB}}, predict 3 interview questions: one behavioral, one situational, and one technical. Label each with its type.
+Output: Plain text list of predicted interview questions grouped by competency and labeled behavioral, situational, or technical.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 22 - Answer Evidence Map
+
+
+Level: Solo
+Purpose: Map predicted interview questions to single-line matching examples from the profile.
+Inputs: {{JOB}}, {{PROFILE}}, {{PREDICTED_QUESTIONS}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+For each predicted question about {{JOB}} from {{PREDICTED_QUESTIONS}}, find the best matching example in {{PROFILE}}. Show the example in one line. If there's no match, say so. Don't invent one.
+Output: Plain text list pairing each predicted question with a one-line profile example or no-match notice.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 23 - Follow-Up Drill
+
+
+Level: Solo
+Purpose: Predict two interviewer follow-up questions for each of the top five interview questions and draft honest answers.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+For the top 5 likely questions about {{JOB}}, write the two follow-ups an interviewer would probably ask next. Then give me one honest answer for each follow-up using only {{PROFILE}}.
+Output: Plain text list of top 5 questions, two follow-up questions per item, and profile-grounded answers.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 24 - Strong-Answer Signals
+
+
+Level: Solo
+Purpose: Define strong-answer criteria per job competency and identify which elements the profile can support.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+For each competency in {{JOB}}, list what a strong answer should include (a clear situation, a specific action, a measurable result, a tradeoff I made). Then tell me which of those signals my profile can support and which I'd need to add from memory.
+Output: Plain text breakdown of strong-answer signals per competency divided into profile-supported and memory-needed elements.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 25 - Red Flag Check
+
+
+Level: Solo
+Purpose: Identify weak-answer red flags per job competency and check draft answers in the profile against them.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+For each competency in {{JOB}}, list the weak answers an interviewer would notice, such as vague results, no ownership, or claiming a skill without an example. Check my draft answers in {{PROFILE}} against them and flag any that fall into those traps.
+Output: Plain text list of weak-answer indicators per competency and flags on any matching traps in profile draft answers.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 26 - Interview Walkthrough
+
+
+Level: Solo
+Purpose: Draft a two-minute interview walkthrough of a typical role task anchored in a real profile example.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+Based on {{JOB}}, write a 2-minute walkthrough I could give in an interview about how I'd approach a typical task for this role. Use a real example from {{PROFILE}} as the base.
+Output: Plain text 2-minute spoken walkthrough grounded in a verified profile example.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 27 - Sample Task Plan
+
+
+Level: Solo
+Purpose: Outline a two-hour execution plan for a paid sample task based on the job posting.
+Inputs: {{JOB}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+The employer asks for a paid sample task. Based on {{JOB}}, outline a 2-hour plan: what I'd deliver, the steps, and how I'd check my work. Plain text.
+Output: Plain text 2-hour sample task plan detailing deliverables, steps, and verification checks.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 28 - Question Quality Check
+
+
+Level: Solo
+Purpose: Filter predicted interview questions for duplicates, relevance to job requirements, and protected personal inquiries.
+Inputs: {{JOB}}, {{PREDICTED_QUESTIONS}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+Read the predicted questions for {{JOB}} in {{PREDICTED_QUESTIONS}}. Remove any that are duplicates or that aren't tied to a stated job requirement. Flag any question that asks about personal or protected details, and say why.
+Output: Plain text cleaned list of job-relevant interview questions plus flags and reasons for any protected-detail questions.
+Output standards:
+- Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+
+
+# 29 - Tailor Resume
+
+
+Level: Single step with review
+Purpose: Generate a plain-text resume tailored to the job posting using only verified profile facts.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Intensity: standard
+Tone: neutral
+Specificity: specific
+Boldness: measured
+Persona: established
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Name: Tailor Resume
+Action: Using only facts from {{PROFILE}}, write a resume tailored to {{JOB}}. Put the most relevant skills and projects first. Don't add any skill, license, or degree that isn't in the profile. Output as plain text with simple headings.
+Input: {{JOB}}, {{PROFILE}}
+Output: Tailored plain-text resume draft ready for user review.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text tailored resume with simple headings, prioritizing relevant skills and projects.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Formatting: Usually 1 page for students and early-career applicants; professional, consistent, readable font (10–12 pt); clean, organized, easy-to-scan layout; consistent spacing and white space; PDF when submitting if accepted; reverse chronological order within sections; professional, factual, concise style.
+- Structure: FIRST LAST (City, State | Phone | Email | Portfolio / LinkedIn), EDUCATION, EXPERIENCE, PROJECTS, SKILLS (Technical, Languages, Other).
+- Rules & Mistakes to Avoid: No spelling or grammatical errors; include contact information; use strong action verbs instead of passive language; avoid poor organization or excessive wording; demonstrate verifiable results (Action + Context + Method + Result); avoid personal pronouns, unnecessary abbreviations, pictures, age, gender, and references.
+Review stop: yes
+
+________________
+
+
+
+
+# 30 - Resume Trim
+
+
+Level: Solo
+Purpose: Condense a tailored resume to fit one page while retaining all dates and employers.
+Inputs: {{RESUME}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Shorten {{RESUME}} to one page. Keep every date and employer. Plain text.
+Output: Plain text one-page resume retaining all original dates and employers.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Formatting: Usually 1 page for students and early-career applicants; professional, consistent, readable font (10–12 pt); clean, organized, easy-to-scan layout; consistent spacing and white space; PDF when submitting if accepted; reverse chronological order within sections; professional, factual, concise style.
+- Structure: FIRST LAST (City, State | Phone | Email | Portfolio / LinkedIn), EDUCATION, EXPERIENCE, PROJECTS, SKILLS (Technical, Languages, Other).
+- Rules & Mistakes to Avoid: No spelling or grammatical errors; include contact information; use strong action verbs instead of passive language; avoid poor organization or excessive wording; demonstrate verifiable results (Action + Context + Method + Result); avoid personal pronouns, unnecessary abbreviations, pictures, age, gender, and references.
+Review stop: no
+
+________________
+
+
+
+
+
+
+# 31 - Cover Letter (Confident)
+
+
+Level: Single step with review
+Purpose: Draft a plain-text cover letter under 350 words highlighting one matching project from the profile.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Intensity: standard
+Tone: neutral
+Specificity: specific
+Boldness: measured
+Persona: established
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Name: Cover Letter (Confident)
+Action: Write a cover letter for {{JOB}} using only facts from {{PROFILE}}. Confident tone, under 350 words, three short paragraphs. Name one specific project from my profile that matches the job's top requirement. Plain text, no bullet points.
+Input: {{JOB}}, {{PROFILE}}
+Output: Three-paragraph plain-text cover letter draft under 350 words ready for user review.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text cover letter under 350 words in three short paragraphs without bullet points.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: yes
+
+________________
+
+
+
+
+# 32 - Cover Letter (Short)
+
+
+Level: Solo
+Purpose: Write a concise 150-word plain-text cover letter using only verified profile facts.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Write a 150-word cover letter for {{JOB}} using only facts from {{PROFILE}}. Plain text only.
+Output: Plain text 150-word cover letter.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+# 33 - Opening Line
+
+
+Level: Solo
+Purpose: Generate three distinct cover letter opening sentences naming the role, company, and verified reason for applying.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Write 3 opening sentences for a cover letter to {{JOB}}. Each one names the position and the company, and gives a different reason for applying. Pull the reason only from {{JOB}} or {{PROFILE}}.
+Output: Plain text list of 3 opening sentences naming the position, company, and distinct grounded reasons for applying.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+# 34 - Motivation Line
+
+
+Level: Solo
+Purpose: Write a single sentence explaining genuine interest tied to a specific job responsibility without generic praise.
+Inputs: {{JOB}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Based on {{JOB}}, write one sentence explaining why the position interests me, tied to a specific responsibility in the posting. Don't use generic praise for the company.
+Output: Plain text single sentence linking candidate interest to a specific responsibility in the job posting.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+# 35 - Relevant Experience Pick
+
+
+Level: Solo
+Purpose: Select the three most relevant profile responsibilities and link each to a job posting requirement in one sentence.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+From {{PROFILE}}, pick the 3 responsibilities most relevant to {{JOB}}. For each, write one sentence connecting it to a requirement in the posting.
+Output: Plain text list of 3 selected responsibilities, each paired with a single connection sentence.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+# 36 - Value Statement
+
+
+Level: Solo
+Purpose: Draft one sentence stating expected 90-day contributions strictly supported by profile skills and results.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Write one value sentence for {{JOB}}: what I'd contribute in my first 90 days, based only on skills and results in {{PROFILE}}. No promises beyond what the profile supports.
+Output: Plain text single sentence stating evidence-backed 90-day contributions.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+# 37 - Closing Options
+
+
+Level: Solo
+Purpose: Produce three cover letter closing paragraphs under 40 words each in direct, warm, and brief tones.
+Inputs: {{JOB}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Write 3 closing paragraphs for a cover letter to {{JOB}}. Vary the tone: direct, warm, and brief. Each one should ask for a conversation and stay under 40 words.
+Output: Plain text set of 3 closing paragraphs (direct, warm, brief), each under 40 words.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+
+
+# 38 - Four-Paragraph Build
+
+
+Level: Single step with review
+Purpose: Build a structured four-paragraph cover letter of 200–300 words grounded in verified profile facts.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Intensity: standard
+Tone: neutral
+Specificity: specific
+Boldness: measured
+Persona: established
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Name: Four-Paragraph Build
+Action: Write a cover letter for {{JOB}} in four paragraphs: Introduction (position and interest), Relevant Experience (tied to requirements), Value (what I bring), Closing (interest in discussing next steps). Use only facts from {{PROFILE}}. 200–300 words.
+Input: {{JOB}}, {{PROFILE}}
+Output: Four-paragraph plain-text cover letter draft (200–300 words) ready for user review.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text four-paragraph cover letter between 200 and 300 words.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: yes
+
+________________
+
+
+
+
+# 39 - Length Trim
+
+
+Level: Solo
+Purpose: Condense an existing cover letter to 200 words without dropping any matched job requirement.
+Inputs: {{JOB}}, {{COVER_LETTER}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Shorten {{COVER_LETTER}} to 200 words without losing any requirement match from {{JOB}}. Plain text.
+Output: Plain text trimmed cover letter of 200 words preserving all matched requirements.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+
+
+# 40 - Strategy Letter: Technical
+
+
+Level: Single step with review
+Purpose: Draft a four-paragraph Technical/Engineering cover letter emphasizing precision, documentation, and CAD software.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Intensity: standard
+Tone: neutral
+Specificity: specific
+Boldness: measured
+Persona: established
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Name: Strategy Letter: Technical
+Action: Write a cover letter for {{JOB}} using the Technical/Engineering approach. Focus on precision, documentation, CAD software, and project responsibilities from {{PROFILE}}. 200–300 words, four paragraphs, plain text.
+Input: {{JOB}}, {{PROFILE}}
+Output: Technical/Engineering cover letter draft (200–300 words) ready for user review.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text four-paragraph cover letter of 200–300 words focused on technical and engineering execution.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: yes
+
+________________
+
+
+
+
+
+
+# 41 - Strategy Letter: Architecture
+
+
+Level: Single step with review
+Purpose: Draft a four-paragraph Architecture/Design cover letter emphasizing design thinking, modeling, and visualization.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Intensity: standard
+Tone: neutral
+Specificity: specific
+Boldness: measured
+Persona: established
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Name: Strategy Letter: Architecture
+Action: Write a cover letter for {{JOB}} using the Architecture/Design approach. Focus on design thinking, modeling, visualization, and problem-solving from {{PROFILE}}. 200–300 words, four paragraphs, plain text.
+Input: {{JOB}}, {{PROFILE}}
+Output: Architecture/Design cover letter draft (200–300 words) ready for user review.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text four-paragraph cover letter of 200–300 words focused on architecture and design capabilities.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: yes
+
+________________
+
+
+
+
+
+
+# 42 - Strategy Letter: Remote
+
+
+Level: Single step with review
+Purpose: Draft a four-paragraph Remote/Independent cover letter highlighting organization, written communication, and self-direction.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Intensity: standard
+Tone: neutral
+Specificity: specific
+Boldness: measured
+Persona: established
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Name: Strategy Letter: Remote
+Action: Write a cover letter for {{JOB}} using the Remote/Independent approach. Focus on organization, written communication, self-directed work, and digital deliverables from {{PROFILE}}. 200–300 words, four paragraphs, plain text.
+Input: {{JOB}}, {{PROFILE}}
+Output: Remote/Independent cover letter draft (200–300 words) ready for user review.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text four-paragraph cover letter of 200–300 words focused on remote and independent execution.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: yes
+
+________________
+
+
+
+
+
+
+# 43 - Strategy Letter: Growth
+
+
+Level: Single step with review
+Purpose: Draft a four-paragraph Entry-Level/Development cover letter emphasizing transferable skills, learning, and education.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Intensity: standard
+Tone: neutral
+Specificity: specific
+Boldness: measured
+Persona: established
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Name: Strategy Letter: Growth
+Action: Write a cover letter for {{JOB}} using the Entry-Level/Development approach. Focus on transferable skills, learning, and education from {{PROFILE}}. Don't claim experience I don't have. 200–300 words, four paragraphs, plain text.
+Input: {{JOB}}, {{PROFILE}}
+Output: Entry-Level/Development cover letter draft (200–300 words) ready for user review.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text four-paragraph cover letter of 200–300 words focused on transferable skills and growth.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: yes
+
+________________
+
+
+
+
+
+
+# 44 - Strategy Letter: Direct
+
+
+Level: Single step with review
+Purpose: Draft a four-paragraph Experienced/Direct cover letter centered on proven responsibilities and accomplishments.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Intensity: standard
+Tone: neutral
+Specificity: specific
+Boldness: measured
+Persona: established
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Name: Strategy Letter: Direct
+Action: Write a cover letter for {{JOB}} using the Experienced/Direct approach. Focus on proven responsibilities and accomplishments from {{PROFILE}} that match the posting. 200–300 words, four paragraphs, plain text.
+Input: {{JOB}}, {{PROFILE}}
+Output: Experienced/Direct cover letter draft (200–300 words) ready for user review.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text four-paragraph cover letter of 200–300 words focused on direct proven accomplishments.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: yes
+
+________________
+
+
+
+
+# 45 - Recruiter Message
+
+
+Level: Solo
+Purpose: Write a concise LinkedIn or email outreach message to a recruiter under 80 words.
+Inputs: {{JOB}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Write a short LinkedIn or email message to a recruiter about {{JOB}}. Under 80 words. Plain text.
+Output: Plain text recruiter outreach message under 80 words.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+# 46 - Follow-Up Email
+
+
+Level: Solo
+Purpose: Draft a follow-up email under 100 words to send seven days after submitting an application.
+Inputs: {{JOB}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Write a follow-up email I can send 7 days after applying to {{JOB}}. Under 100 words. Plain text.
+Output: Plain text 7-day follow-up email under 100 words.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+# 47 - Reference Prep
+
+
+Level: Solo
+Purpose: Prepare a brief note for a professional reference listing three target skills with one profile example each.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Task:
+Write a short note I can send to a reference for {{JOB}}, listing the 3 skills I'd like them to confirm, with one example each from {{PROFILE}}.
+Output: Plain text reference preparation note with 3 skills and one supporting profile example each.
+Output standards:
+- Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+- Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+- Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+Review stop: no
+
+________________
+
+
+
+
+# 48 - Honesty Check
+
+
+Level: Solo
+Purpose: Audit a draft resume and cover letter against saved profile facts to flag unsupported, vague, or exaggerated claims.
+Inputs: {{PROFILE}}, {{RESUME}}, {{COVER_LETTER}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+Read {{RESUME}} and {{COVER_LETTER}} against {{PROFILE}}. Flag any claim that isn't supported, any vague phrase that could be more specific, and any sentence that oversells. Suggest a fix for each.
+Output: Plain text audit flagging unsupported, vague, or exaggerated claims with suggested fixes.
+Output standards:
+- Resume Standards:
+  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Formatting: Usually 1 page for students and early-career applicants; professional, consistent, readable font (10–12 pt); clean, organized, easy-to-scan layout; consistent spacing and white space; PDF when submitting if accepted; reverse chronological order within sections; professional, factual, concise style.
+  - Structure: FIRST LAST (City, State | Phone | Email | Portfolio / LinkedIn), EDUCATION, EXPERIENCE, PROJECTS, SKILLS (Technical, Languages, Other).
+  - Rules & Mistakes to Avoid: No spelling or grammatical errors; include contact information; use strong action verbs instead of passive language; avoid poor organization or excessive wording; demonstrate verifiable results (Action + Context + Method + Result); avoid personal pronouns, unnecessary abbreviations, pictures, age, gender, and references.
+- Cover Letter Standards:
+  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+  - Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+- Analysis & Quality Control Standards:
+  - Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 49 - Eight-Point Review
+
+
+Level: Solo
+Purpose: Evaluate a draft cover letter against eight quality criteria and provide fixes for any failed checks.
+Inputs: {{JOB}}, {{COVER_LETTER}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+Review {{COVER_LETTER}} for {{JOB}} against these checks: addresses the actual job, explains why I'm qualified, uses examples instead of generic claims, sounds natural, doesn't repeat the resume word for word, has no unnecessary personal details, has an appropriate tone, and is concise. Score each check Pass or Fix, and show a fix for each one marked Fix.
+Output: Plain text Pass/Fix scorecard across 8 criteria with concrete fixes for every item marked Fix.
+Output standards:
+- Cover Letter Standards:
+  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+  - Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+- Analysis & Quality Control Standards:
+  - Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 50 - Resume Overlap Check
+
+
+Level: Solo
+Purpose: Detect sentences in a cover letter that repeat resume bullets verbatim and rewrite them to explain context.
+Inputs: {{JOB}}, {{RESUME}}, {{COVER_LETTER}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+Compare {{COVER_LETTER}} with {{RESUME}} for {{JOB}}. List any sentence that repeats a resume bullet nearly word for word, and suggest a rewrite that adds the reason behind the experience instead.
+Output: Plain text list of redundant cover letter sentences paired with context-focused rewrites.
+Output standards:
+- Resume Standards:
+  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Formatting: Usually 1 page for students and early-career applicants; professional, consistent, readable font (10–12 pt); clean, organized, easy-to-scan layout; consistent spacing and white space; PDF when submitting if accepted; reverse chronological order within sections; professional, factual, concise style.
+  - Structure: FIRST LAST (City, State | Phone | Email | Portfolio / LinkedIn), EDUCATION, EXPERIENCE, PROJECTS, SKILLS (Technical, Languages, Other).
+  - Rules & Mistakes to Avoid: No spelling or grammatical errors; include contact information; use strong action verbs instead of passive language; avoid poor organization or excessive wording; demonstrate verifiable results (Action + Context + Method + Result); avoid personal pronouns, unnecessary abbreviations, pictures, age, gender, and references.
+- Cover Letter Standards:
+  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+  - Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+- Analysis & Quality Control Standards:
+  - Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+# 51 - Natural Voice Check
+
+
+Level: Solo
+Purpose: Identify stiff, buzzword-heavy, or template-sounding sentences in a cover letter and suggest plainer alternatives.
+Inputs: {{JOB}}, {{COVER_LETTER}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Specificity: specific
+Persona: established
+Task:
+Read {{COVER_LETTER}} for {{JOB}} aloud in your head. Flag any sentence that sounds stiff, uses buzzwords, or reads like a template. Suggest a plainer version of each.
+Output: Plain text list of stiff or buzzword-heavy sentences with plainer rewrites.
+Output standards:
+- Cover Letter Standards:
+  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+  - Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+- Analysis & Quality Control Standards:
+  - Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: no
+
+________________
+
+
+
+
+
+
+# 52 - Package Plan
+
+
+Level: Full loop
+Purpose: Assemble a complete job application package plan selecting resume version, cover letter strategy, portfolio project, and interview stories.
+Inputs: {{JOB}}, {{PROFILE}}
+Header: Use only facts from my profile and the job posting. Don't invent skills, licenses, degrees, numbers, or experience. If something the job asks for isn't in my profile, say so instead of filling the gap. Plain text unless I ask otherwise.
+Status line: 0000000
+Loop instructions: Read the latest status line. Find the first step not marked 5 or 6. Execute that step only. Update its status (0 = Not started, 1 = Waiting for data, 3 = Blocked, 4 = Needs my review, 5 = Done, 6 = Skipped). Stop when its status becomes 1, 3, or 4, and resume only when instructed to continue or when missing information is provided. When every step is 5 or 6, return Complete.
+Task:
+Step 1 (1000000000 0000000000 0000000000)
+Action: Extract the core requirements and target role focus from {{JOB}} against verified facts in {{PROFILE}}.
+Input: {{JOB}}, {{PROFILE}}
+Output: Verified alignment summary of job requirements against profile facts.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 2 (0100000000 0000000000 0000000000)
+Action: Determine which resume version to use for {{JOB}} based strictly on {{PROFILE}}.
+Input: {{JOB}}, {{PROFILE}}
+Output: Recommended resume version selection grounded in profile history.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 3 (0010000000 0000000000 0000000000)
+Input: {{JOB}}, {{PROFILE}}
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 4 (0001000000 0000000000 0000000000)
+Action: Select which verified project from {{PROFILE}} to feature in the portfolio for {{JOB}}.
+Input: {{JOB}}, {{PROFILE}}
+Output: Chosen portfolio project from the profile with relevance rationale.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 5 (0000100000 0000000000 0000000000)
+Action: Select two verified experience stories from {{PROFILE}} to prepare for {{JOB}} interviews.
+Input: {{JOB}}, {{PROFILE}}
+Output: Two selected interview stories drawn from verified profile facts.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 6 (0000010000 0000000000 0000000000)
+Action: Compile the resume version, cover letter strategy, portfolio project, and two interview stories for user review before finalizing.
+Input: {{JOB}}, {{PROFILE}}
+Output: Consolidated draft package selections awaiting user review.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+
+
+Step 7 (0000001000 0000000000 0000000000)
+Action: Output the complete, approved application package plan for {{JOB}} using only facts from {{PROFILE}}.
+Input: {{JOB}}, {{PROFILE}}
+Output: Final plain-text application package plan specifying resume version, cover letter strategy, portfolio project, and two interview stories.
+Status effect: 5 when finished, 1 when a needed input is missing, 3 when it can't be done, 4 when the output needs my review, 6 when I tell you to skip it
+Output: Plain text application package plan specifying resume version, cover letter strategy, portfolio project, and two interview stories.
+Output standards:
+- Resume Standards:
+  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Formatting: Usually 1 page for students and early-career applicants; professional, consistent, readable font (10–12 pt); clean, organized, easy-to-scan layout; consistent spacing and white space; PDF when submitting if accepted; reverse chronological order within sections; professional, factual, concise style.
+  - Structure: FIRST LAST (City, State | Phone | Email | Portfolio / LinkedIn), EDUCATION, EXPERIENCE, PROJECTS, SKILLS (Technical, Languages, Other).
+  - Rules & Mistakes to Avoid: No spelling or grammatical errors; include contact information; use strong action verbs instead of passive language; avoid poor organization or excessive wording; demonstrate verifiable results (Action + Context + Method + Result); avoid personal pronouns, unnecessary abbreviations, pictures, age, gender, and references.
+- Cover Letter Standards:
+  - Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Standards: Maximum 1 page; concise, factual, specific, and professional writing style; convince the employer to read the resume and consider an interview; address a specific person when possible; provide concrete examples; avoid excessive use of "I"; keep the letter factual; use complete paragraphs (not bullet points).
+  - Structure: CONTACT INFORMATION, DATE, EMPLOYER INFORMATION, GREETING (Dear Hiring Manager:), PARAGRAPH 1 — INTRODUCTION (identify position, explain interest, establish relevance), PARAGRAPH 2 — QUALIFICATIONS (highlight relevant experience, 1–2 concrete examples, connect skills to requirements), PARAGRAPH 3 — EMPLOYER CONNECTION (explain interest in organization, describe potential contribution), PARAGRAPH 4 — CLOSING (reaffirm interest, express appreciation, invite further discussion), Sincerely, Full Name.
+- Analysis & Quality Control Standards:
+  - Central Philosophy: Be specific, factual, concise, results-oriented, and tailored to the employer.
+  - Verification & Quality Standards: All information must be factually accurate and verifiable; use Action + Context + Method + Result framing where applicable; only include results and numbers that can be verified from {{PROFILE}}; no unnecessary personal information; no spelling or grammatical errors.
+Review stop: yes (Steps 3 and 6)
+

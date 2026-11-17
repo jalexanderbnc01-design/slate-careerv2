@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GridForge</title>
+  <style>
+    /* --- BASE --- */
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background-color: #0a0a0a;
+      color: #f4f4f5;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* --- THE WORLD (Grid, Coords, Panels) --- */
+    #world {
+      position: absolute;
+      top: 0; left: 0;
+      width: 10000px; height: 10000px;
+      transform-origin: 0 0;
+    }
+
+    .grid-bg {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image:
+        linear-gradient(to right, #2a2a2a 1px, transparent 1px),
+        linear-gradient(to bottom, #2a2a2a 1px, transparent 1px),
+        linear-gradient(to right, #161616 1px, transparent 1px),
+        linear-gradient(to bottom, #161616 1px, transparent 1px);
+      background-size: 100px 100px, 100px 100px, 25px 25px, 25px 25px;
+    }
+
+    /* --- COORDINATE SYSTEM --- */
+    .axis { position: absolute; font-size: 10px; color: #555; pointer-events: none; }
+    .x-axis { top: 0; left: 0; width: 100%; height: 18px; }
+    .x-axis .label { position: absolute; transform: translateX(-50%); padding-top: 3px; }
+    .y-axis { top: 0; left: 0; height: 100%; width: 24px; }
+    .y-axis .label { position: absolute; transform: translateY(-50%); padding-left: 3px; }
+    .origin {
+      position: absolute; top: 0; left: 0; width: 24px; height: 18px;
+      background: #0a0a0a; display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 10px; pointer-events: none;
+    }
+
+    /* --- WORKSPACE CARDS SNAPPED TO 25PX GRID --- */
+    .gf-section-label {
+      position: absolute;
+      height: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      padding: 0 2px;
+      pointer-events: none;
+      user-select: none;
+    }
+    .gf-section-label span.count {
+      color: #10b981;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.04em;
+    }
+
+    .gf-card {
+      position: absolute;
+      background: rgba(14, 16, 15, 0.94);
+      border: 1px solid #2e3431;
+      border-top: 2px solid #10b981;
+      padding: 12px 14px;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #f4f4f5;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+      pointer-events: auto;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .gf-card:hover {
+      border-color: #4b5563;
+      border-top-color: #34d399;
+    }
+    #world.panning .gf-card {
+      pointer-events: none;
+    }
+    .gf-card.gf-card-profile {
+      border-top: 2px solid #ffffff;
+      background: linear-gradient(180deg, rgba(20, 26, 23, 0.96), rgba(12, 14, 13, 0.96));
+    }
+    .gf-card.gf-card-fair {
+      border-top-color: #f59e0b;
+    }
+    .gf-card.gf-card-applied {
+      border-top-color: #64748b;
+    }
+    .gf-card.gf-card-empty {
+      border: 1px dashed #3f3f46;
+      background: rgba(15, 15, 16, 0.72);
+      color: #9ca3af;
+      text-align: left;
+    }
+
+    .gf-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .gf-eyebrow {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #10b981;
+      margin-bottom: 3px;
+    }
+    .gf-card-profile .gf-eyebrow {
+      color: #d1fae5;
+    }
+    .gf-title {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: #ffffff;
+      margin: 0;
+    }
+    .gf-sub {
+      font-size: 11px;
+      color: #a1a1aa;
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+    .gf-badge {
+      flex-shrink: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(16, 185, 129, 0.45);
+      color: #34d399;
+      white-space: nowrap;
+    }
+    .gf-badge.fair {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.45);
+      color: #fbbf24;
+    }
+    .gf-badge.applied {
+      background: rgba(100, 116, 139, 0.18);
+      border-color: rgba(148, 163, 184, 0.35);
+      color: #cbd5e1;
+    }
+    .gf-summary {
+      font-size: 11px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      margin: 8px 0 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .gf-meta-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: #d4d4d8;
+    }
+    .gf-meta-grid span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .gf-meta-grid b {
+      color: #71717a;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    .gf-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 9px;
+    }
+    .gf-chip {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      border: 1px solid #27272a;
+      background: #141416;
+      color: #a1a1aa;
+    }
+    .gf-chip.hit {
+      border-color: rgba(16, 185, 129, 0.45);
+      background: rgba(16, 185, 129, 0.12);
+      color: #6ee7b7;
+    }
+    .gf-coords {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid #202422;
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      color: #52525b;
+    }
+
+    /* --- UI LAYER (Stays fixed on screen) --- */
+    #ui-layer {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #ui-layer > * { pointer-events: auto; }
+
+    /* --- TOP MODE BAR --- */
+    .mode-bar {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .mode-btn {
+      background: rgba(10, 10, 10, 0.92);
+      color: #f4f4f5;
+      border: 1px solid #3f3f46;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+    .mode-btn:hover { background: #1f2937; border-color: #71717a; }
+    .mode-btn.active {
+      background: #fff;
+      color: #000;
+      border-color: #fff;
+      box-shadow: 0 0 10px rgba(255,255,255,0.28);
+    }
+
+    /* Slide indicator */
+    #slide-indicator {
+      position: absolute;
+      top: 46px;
+      right: 12px;
+      color: #fff;
+      font-family: system-ui, sans-serif;
+      font-size: 11px;
+      background: rgba(0, 0, 0, 0.88);
+      padding: 4px 10px;
+      border-radius: 14px;
+      border: 1px solid #333;
+      display: none;
+    }
+    #slide-indicator.visible { display: block; }
+
+    /* --- COMPACT COLLAPSIBLE DATA PANEL --- */
+    .data-panel {
+      position: absolute;
+      bottom: 48px;
+      left: 12px;
+      background: rgba(8, 10, 9, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 6px;
+      padding: 8px 11px;
+      font-size: 10px;
+      color: #a1a1aa;
+      user-select: text;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      line-height: 1.5;
+      max-width: 240px;
+    }
+    .data-panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .data-panel h3 {
+      margin: 0;
+      font-size: 10px;
+      color: #fff;
+      font-family: system-ui, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+    }
+    .data-panel-toggle {
+      background: transparent;
+      border: 1px solid #3f3f46;
+      color: #d4d4d8;
+      border-radius: 3px;
+      width: 18px;
+      height: 18px;
+      line-height: 1;
+      font-size: 11px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+    .data-panel-body {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    .data-panel.collapsed .data-panel-body {
+      display: none;
+    }
+    .data-panel .row { margin-bottom: 2px; }
+    .data-panel .key { color: #a1a1aa; }
+    .data-panel .value { color: #fff; }
+    .data-panel .note {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+      font-size: 10px;
+      color: #71717a;
+      font-family: system-ui, sans-serif;
+    }
+
+    /* --- TERMINAL OUTPUT LOG --- */
+    .cmd-output {
+      position: absolute; bottom: 40px; left: 0; width: 100%; max-height: 120px; overflow-y: auto;
+      background: rgba(0, 0, 0, 0.92); border-top: 1px solid #333;
+      padding: 6px 14px; font-size: 11px; color: #aaa;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .cmd-output:empty {
+      display: none;
+    }
+    .cmd-output .log-line { white-space: pre-wrap; word-break: break-word; }
+    .cmd-output .success { color: #6ee7b7; font-weight: bold; }
+    .cmd-output .error { color: #f87171; }
+
+    /* --- COMMAND LINE INPUT --- */
+    .cmd-line {
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 40px;
+      background: rgba(0, 0, 0, 0.96); border-top: 1px solid #27272a;
+      display: flex; align-items: center; padding: 0 14px; font-size: 12px;
+    }
+    .cmd-line .prompt { color: #10b981; margin-right: 8px; user-select: none; font-weight: bold; }
+    .cmd-line .cmd-input {
+      background: transparent; border: none; color: #fff; font-family: inherit; font-size: inherit;
+      flex-grow: 1; outline: none; caret-color: #10b981; min-width: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- THE WORLD (Moves and Pans) -->
+  <div id="world">
+    <div class="grid-bg"></div>
+    <div class="origin">0,0</div>
+    <div id="x-axis" class="axis x-axis"></div>
+    <div id="y-axis" class="axis y-axis"></div>
+    <div id="workspace-layer"></div>
+    <div id="panels-layer"></div>
+  </div>
+
+  <!-- THE UI (Stays Fixed) -->
+  <div id="ui-layer">
+    <div class="mode-bar">
+      <button id="btn-fit" class="mode-btn" title="Scroll back to top-left">⟲ Fit</button>
+      <button id="btn-sync" class="mode-btn" title="Sync profile and saved jobs">⟳ Sync</button>
+      <button id="btn-pan" class="mode-btn">✥ Pan</button>
+      <button id="btn-slide" class="mode-btn">➤ Slide</button>
+    </div>
+    <div id="slide-indicator">Slide 1 / 3</div>
+
+    <div id="data-panel" class="data-panel collapsed">
+      <div class="data-panel-head">
+        <h3>GridForge HUD</h3>
+        <button id="btn-toggle-hud" class="data-panel-toggle" title="Expand or collapse HUD">+</button>
+      </div>
+      <div class="data-panel-body">
+        <div class="row"><span class="key">mode:</span> <span class="value" id="cfg-mode">idle</span></div>
+        <div class="row"><span class="key">grid:</span> <span class="value">25px snap</span></div>
+        <div class="row"><span class="key">synced:</span> <span class="value" id="cfg-cards">1 profile · 0 jobs</span></div>
+        <div class="note">Scroll wheel navigates vertically. Use Pan to drag freely or Slide + Arrows to step sections.</div>
+      </div>
+    </div>
+
+    <div id="cmd-output" class="cmd-output"></div>
+
+    <div class="cmd-line">
+      <span class="prompt">root@gridforge:~$</span>
+      <input type="text" class="cmd-input" autocomplete="off" spellcheck="false" placeholder="Type 'sync', 'fit', 'panel {...}', or 'clear'...">
+    </div>
+  </div>
+
+  <script>
+    const world = document.getElementById('world');
+    const workspaceLayer = document.getElementById('workspace-layer');
+    const panelsLayer = document.getElementById('panels-layer');
+    const cfgMode = document.getElementById('cfg-mode');
+    const cfgCards = document.getElementById('cfg-cards');
+    const slideIndicator = document.getElementById('slide-indicator');
+    const dataPanel = document.getElementById('data-panel');
+    const btnToggleHud = document.getElementById('btn-toggle-hud');
+
+    const XELIME_STORE_KEY = 'xelime-career-workspace-v2';
+    const SAVED_JOBS_KEY = 'xelime-saved-jobs-v1';
+
+    // --- State ---
+    let currentMode = 'idle'; // 'idle', 'pan', 'slide'
+    let panX = 0;
+    let panY = 0;
+    let maxContentBottom = 700;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+
+    let workspaceState = {
+      profile: null,
+      skills: [],
+      savedJobs: []
+    };
+
+    let slides = [
+      { x: 0, y: 0, name: 'Profile & Top' },
+      { x: 0, y: -225, name: 'Saved Jobs' },
+      { x: -300, y: 0, name: 'Wide Canvas' }
+    ];
+    let currentSlideIndex = 0;
+
+    // --- UI Elements ---
+    const btnPan = document.getElementById('btn-pan');
+    const btnSlide = document.getElementById('btn-slide');
+    const btnFit = document.getElementById('btn-fit');
+    const btnSync = document.getElementById('btn-sync');
+
+    btnToggleHud.addEventListener('click', () => {
+      const collapsed = dataPanel.classList.toggle('collapsed');
+      btnToggleHud.textContent = collapsed ? '+' : '−';
+    });
+
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[ch]));
+    }
+
+    function snap25(n) {
+      return Math.round(n / 25) * 25;
+    }
+
+    function snapCeil25(n) {
+      return Math.ceil(n / 25) * 25;
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      cfgMode.textContent = mode;
+
+      btnPan.classList.toggle('active', mode === 'pan');
+      btnSlide.classList.toggle('active', mode === 'slide');
+      slideIndicator.classList.toggle('visible', mode === 'slide');
+      world.classList.toggle('panning', mode === 'pan');
+
+      if (mode === 'pan') {
+        world.style.cursor = 'grab';
+        world.style.transition = 'none';
+      } else if (mode === 'slide') {
+        world.style.cursor = 'default';
+        world.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+        goToSlide(currentSlideIndex);
+      } else {
+        world.style.cursor = 'default';
+        world.style.transition = 'transform 0.12s ease-out';
+      }
+    }
+
+    btnPan.addEventListener('click', () => setMode(currentMode === 'pan' ? 'idle' : 'pan'));
+    btnSlide.addEventListener('click', () => setMode(currentMode === 'slide' ? 'idle' : 'slide'));
+    btnFit.addEventListener('click', () => {
+      panX = 0;
+      panY = 0;
+      world.style.transition = 'transform 0.25s ease';
+      updateTransform();
+    });
+    btnSync.addEventListener('click', () => {
+      loadFromStorage();
+      renderWorkspaceLayout();
+      logToTerminal(`✓ Synced profile + ${workspaceState.savedJobs.length} saved job(s).`, 'success');
+    });
+
+    function updateTransform() {
+      world.style.transform = `translate(${panX}px, ${panY}px) scale(1)`;
+    }
+
+    // Smooth vertical scroll inside GridForge while in idle mode
+    window.addEventListener('wheel', (e) => {
+      if (currentMode !== 'idle') return;
+      if (e.target.closest('.cmd-output')) return;
+      const minY = Math.min(0, -(maxContentBottom - window.innerHeight + 80));
+      panY = Math.max(minY, Math.min(0, panY - e.deltaY));
+      world.style.transition = 'none';
+      updateTransform();
+    }, { passive: true });
+
+    // --- Pan Mode Logic ---
+    world.addEventListener('mousedown', (e) => {
+      if (currentMode !== 'pan') return;
+      isDragging = true;
+      dragStartX = e.clientX - panX;
+      dragStartY = e.clientY - panY;
+      world.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging || currentMode !== 'pan') return;
+      panX = e.clientX - dragStartX;
+      panY = e.clientY - dragStartY;
+      updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        if (currentMode === 'pan') world.style.cursor = 'grab';
+      }
+    });
+
+    // --- Slide Mode Logic ---
+    function goToSlide(index) {
+      if (index < 0) index = 0;
+      if (index >= slides.length) index = slides.length - 1;
+      currentSlideIndex = index;
+
+      panX = slides[index].x;
+      panY = slides[index].y;
+      updateTransform();
+
+      slideIndicator.textContent = `Slide ${index + 1} / ${slides.length}: ${slides[index].name}`;
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (currentMode !== 'slide') return;
+      if (document.activeElement === document.querySelector('.cmd-input')) return;
+
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        goToSlide(currentSlideIndex + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        goToSlide(currentSlideIndex - 1);
+      }
+    });
+
+    // --- Workspace Sync & Clean 25px Snap Layout ---
+    // State now flows through postMessage from the React parent (Firestore-backed);
+    // localStorage is no longer used inside this iframe.
+    function loadFromStorage() {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'gridforge:request-sync' }, window.location.origin);
+        }
+      } catch {}
+    }
+
+    function buildProfileCard(left, top, width) {
+      const p = workspaceState.profile || {};
+      const name = p.displayName || 'Your Career Profile';
+      const headline = p.headline || 'Technical drafting, 3D & digital design';
+      const location = p.location || 'Columbus, OH';
+      const summary = p.summary || 'Edit Identity in XELIME to update this live profile card.';
+      const skillNames = (workspaceState.skills || []).map((s) => s.name).filter(Boolean).slice(0, 6);
+
+      const card = document.createElement('section');
+      card.className = 'gf-card gf-card-profile';
+      card.style.left = `${left}px`;
+      card.style.top = `${top}px`;
+      card.style.width = `${width}px`;
+      card.innerHTML = `
+        <div class="gf-card-head">
+          <div style="min-width:0">
+            <div class="gf-eyebrow">PROFILE SNAPSHOT</div>
+            <h4 class="gf-title">${esc(name)}</h4>
+            <div class="gf-sub">${esc(headline)} · ${esc(location)}</div>
+          </div>
+          <span class="gf-badge">${skillNames.length} skills</span>
+        </div>
+        <p class="gf-summary">${esc(summary)}</p>
+        ${skillNames.length ? `<div class="gf-chips">${skillNames.map((s) => `<span class="gf-chip hit">${esc(s)}</span>`).join('')}</div>` : ''}
+        <div class="gf-coords"><span>x:${left} y:${top}</span><span class="gf-dim"></span></div>
+      `;
+      workspaceLayer.appendChild(card);
+
+      const snappedH = Math.max(125, snapCeil25(card.offsetHeight));
+      card.style.height = `${snappedH}px`;
+      const dim = card.querySelector('.gf-dim');
+      if (dim) dim.textContent = `${width}×${snappedH}`;
+      return snappedH;
+    }
+
+    function buildJobCard(job, left, top, width) {
+      const match = Number(job.match) || 0;
+      const tierClass = job.applied ? 'gf-card-applied' : match >= 80 ? '' : 'gf-card-fair';
+      const badgeClass = job.applied ? 'applied' : match >= 80 ? '' : 'fair';
+      const badgeText = job.applied ? `${match}% · Applied` : `${match}% Match`;
+      const hits = Array.isArray(job.hits) ? job.hits : [];
+      const skills = Array.isArray(job.skills) ? job.skills.slice(0, 5) : [];
+
+      const card = document.createElement('article');
+      card.className = `gf-card ${tierClass}`.trim();
+      card.style.left = `${left}px`;
+      card.style.top = `${top}px`;
+      card.style.width = `${width}px`;
+      card.innerHTML = `
+        <div class="gf-card-head">
+          <div style="min-width:0">
+            <div class="gf-eyebrow">${esc(job.company || 'Employer')}</div>
+            <h4 class="gf-title">${esc(job.title || 'Saved Role')}</h4>
+            <div class="gf-sub">${esc(job.loc || 'Remote')} · ${esc(job.remote || '')} · ${esc(job.type || 'Full-time')}</div>
+          </div>
+          <span class="gf-badge ${badgeClass}">${esc(badgeText)}</span>
+        </div>
+        <div class="gf-meta-grid">
+          ${job.pay ? `<span><b>PAY</b> ${esc(job.pay)}</span>` : ''}
+          ${job.years ? `<span><b>EXP</b> ${esc(job.years)}</span>` : ''}
+        </div>
+        ${skills.length ? `
+          <div class="gf-chips">
+            ${skills.map((s) => `<span class="gf-chip ${hits.includes(s) ? 'hit' : ''}">${esc(s)}</span>`).join('')}
+          </div>
+        ` : ''}
+        <div class="gf-coords"><span>x:${left} y:${top}</span><span class="gf-dim"></span></div>
+      `;
+      workspaceLayer.appendChild(card);
+
+      const snappedH = Math.max(125, snapCeil25(card.offsetHeight));
+      card.style.height = `${snappedH}px`;
+      const dim = card.querySelector('.gf-dim');
+      if (dim) dim.textContent = `${width}×${snappedH}`;
+      return snappedH;
+    }
+
+    function addSectionLabel(text, rightText, left, top, width) {
+      const label = document.createElement('div');
+      label.className = 'gf-section-label';
+      label.style.left = `${left}px`;
+      label.style.top = `${top}px`;
+      label.style.width = `${width}px`;
+      label.innerHTML = `<span>${esc(text)}</span><span class="count">${esc(rightText)}</span>`;
+      workspaceLayer.appendChild(label);
+    }
+
+    function renderWorkspaceLayout() {
+      workspaceLayer.innerHTML = '';
+
+      const vw = Math.max(320, window.innerWidth);
+      const jobs = workspaceState.savedJobs || [];
+      cfgCards.textContent = `1 profile · ${jobs.length} saved`;
+
+      const gap = 25;
+      const topSafe = 75; // Clear of X-axis (18px) and mode buttons
+      let bottomEdge = topSafe;
+      let jobsStartY = topSafe;
+
+      if (vw < 650) {
+        // Single-column clean vertical stack snapped to 25px grid
+        const colW = Math.max(250, Math.floor((vw - 50) / 25) * 25);
+        addSectionLabel('01 · Profile', '25px grid', 25, 50, colW);
+        const profileH = buildProfileCard(25, topSafe, colW);
+
+        let y = topSafe + profileH + gap;
+        addSectionLabel('02 · Saved Jobs', `${jobs.length} pinned`, 25, y, colW);
+        y += 25;
+        jobsStartY = y;
+
+        if (jobs.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'gf-card gf-card-empty';
+          empty.style.left = '25px';
+          empty.style.top = `${y}px`;
+          empty.style.width = `${colW}px`;
+          empty.innerHTML = `
+            <div class="gf-eyebrow">WAITING FOR SAVED ROLES</div>
+            <div class="gf-sub">Click the heart or bookmark icon on any role in <b>Job Feed</b> to post it directly into this GridForge layout alongside your profile.</div>
+            <div class="gf-coords"><span>x:25 y:${y}</span><span class="gf-dim"></span></div>
+          `;
+          workspaceLayer.appendChild(empty);
+          const emptyH = Math.max(100, snapCeil25(empty.offsetHeight));
+          empty.style.height = `${emptyH}px`;
+          const dim = empty.querySelector('.gf-dim');
+          if (dim) dim.textContent = `${colW}×${emptyH}`;
+          bottomEdge = y + emptyH;
+        } else {
+          jobs.forEach((job) => {
+            const h = buildJobCard(job, 25, y, colW);
+            y += h + gap;
+          });
+          bottomEdge = y;
+        }
+
+        slides = [
+          { x: 0, y: 0, name: 'Profile Snapshot' },
+          { x: 0, y: -(Math.max(0, jobsStartY - 75)), name: 'Saved Jobs' },
+          { x: 0, y: -(Math.max(0, bottomEdge - window.innerHeight + 100)), name: 'Bottom of Stack' }
+        ];
+      } else {
+        // Wide two-zone layout: left Profile column + balanced Saved Jobs columns
+        const profileW = 275;
+        addSectionLabel('01 · Profile', '25px grid', 25, 50, profileW);
+        const profileH = buildProfileCard(25, topSafe, profileW);
+        bottomEdge = Math.max(bottomEdge, topSafe + profileH);
+
+        const jobsStartX = 325;
+        const availableRight = Math.max(300, vw - jobsStartX - 25);
+        const cols = Math.max(1, Math.floor((availableRight + gap) / 325));
+        const colW = Math.max(275, Math.floor(((availableRight - gap * (cols - 1)) / cols) / 25) * 25);
+        const totalJobsWidth = cols * colW + (cols - 1) * gap;
+
+        addSectionLabel('02 · Saved Jobs', `${jobs.length} pinned`, jobsStartX, 50, totalJobsWidth);
+
+        if (jobs.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'gf-card gf-card-empty';
+          empty.style.left = `${jobsStartX}px`;
+          empty.style.top = `${topSafe}px`;
+          empty.style.width = `${colW}px`;
+          empty.innerHTML = `
+            <div class="gf-eyebrow">WAITING FOR SAVED ROLES</div>
+            <div class="gf-sub">Save a job in <b>Job Feed</b> to auto-arrange it into this grid.</div>
+            <div class="gf-coords"><span>x:${jobsStartX} y:${topSafe}</span><span class="gf-dim"></span></div>
+          `;
+          workspaceLayer.appendChild(empty);
+          const emptyH = Math.max(100, snapCeil25(empty.offsetHeight));
+          empty.style.height = `${emptyH}px`;
+          const dim = empty.querySelector('.gf-dim');
+          if (dim) dim.textContent = `${colW}×${emptyH}`;
+          bottomEdge = Math.max(bottomEdge, topSafe + emptyH);
+        } else {
+          const colHeights = new Array(cols).fill(topSafe);
+          jobs.forEach((job) => {
+            // Place in shortest column so multi-column stack stays balanced
+            let bestCol = 0;
+            for (let c = 1; c < cols; c++) {
+              if (colHeights[c] < colHeights[bestCol]) bestCol = c;
+            }
+            const x = jobsStartX + bestCol * (colW + gap);
+            const y = colHeights[bestCol];
+            const h = buildJobCard(job, x, y, colW);
+            colHeights[bestCol] = y + h + gap;
+            bottomEdge = Math.max(bottomEdge, colHeights[bestCol]);
+          });
+        }
+
+        slides = [
+          { x: 0, y: 0, name: 'Profile & Jobs' },
+          { x: -300, y: 0, name: 'Saved Jobs Grid' },
+          { x: 0, y: -(Math.max(0, bottomEdge - window.innerHeight + 100)), name: 'Lower Rows' }
+        ];
+      }
+
+      maxContentBottom = bottomEdge;
+      const minY = Math.min(0, -(maxContentBottom - window.innerHeight + 80));
+      if (panY < minY) {
+        panY = minY;
+        updateTransform();
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.origin !== window.location.origin || !event.data) return;
+      if (event.data.type === 'gridforge:sync') {
+        if (event.data.profile) workspaceState.profile = event.data.profile;
+        if (Array.isArray(event.data.skills)) workspaceState.skills = event.data.skills;
+        if (Array.isArray(event.data.savedJobs)) workspaceState.savedJobs = event.data.savedJobs;
+        renderWorkspaceLayout();
+      }
+    });
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(renderWorkspaceLayout, 60);
+    });
+
+    // --- Coordinate System ---
+    function renderCoordinates() {
+      const xAxis = document.getElementById('x-axis');
+      const yAxis = document.getElementById('y-axis');
+      xAxis.innerHTML = ''; yAxis.innerHTML = '';
+      const step = 100;
+      const width = 10000;
+      const height = 10000;
+
+      for (let x = 0; x <= width; x += step) {
+        const label = document.createElement('div');
+        label.className = 'label'; label.style.left = x + 'px'; label.textContent = x;
+        xAxis.appendChild(label);
+      }
+      for (let y = 0; y <= height; y += step) {
+        const label = document.createElement('div');
+        label.className = 'label'; label.style.top = y + 'px'; label.textContent = y;
+        yAxis.appendChild(label);
+      }
+    }
+
+    window.addEventListener('load', () => {
+      renderCoordinates();
+      loadFromStorage();
+      renderWorkspaceLayout();
+    });
+
+    // --- Command Line Logic ---
+    const cmdInput = document.querySelector('.cmd-input');
+    const cmdOutput = document.getElementById('cmd-output');
+
+    function logToTerminal(text, type = '') {
+      const line = document.createElement('div');
+      line.className = 'log-line ' + type;
+      line.textContent = text;
+      cmdOutput.appendChild(line);
+      cmdOutput.scrollTop = cmdOutput.scrollHeight;
+    }
+
+    function validatePanelBounds(config) {
+      const worldSize = 10000;
+      const rightEdge = (config.left || 0) + (config.width || 100);
+      const bottomEdge = (config.top || 0) + (config.height || 100);
+      const errors = [];
+
+      if ((config.left || 0) < 0) errors.push(`Left position (${config.left}) is negative`);
+      if ((config.top || 0) < 0) errors.push(`Top position (${config.top}) is negative`);
+      if (rightEdge > worldSize) errors.push(`Panel Error: Right edge exceeds world bounds`);
+      if (bottomEdge > worldSize) errors.push(`Panel Error: Bottom edge exceeds world bounds`);
+
+      return errors;
+    }
+
+    function createPanel(config) {
+      const errors = validatePanelBounds(config);
+      if (errors.length > 0) {
+        errors.forEach(err => logToTerminal(`✗ ${err}`, 'error'));
+        return false;
+      }
+
+      const panel = document.createElement('div');
+      panel.style.position = 'absolute';
+      panel.style.top = (config.top || 0) + 'px';
+      panel.style.left = (config.left || 0) + 'px';
+      panel.style.width = (config.width || 100) + 'px';
+      panel.style.height = (config.height || 100) + 'px';
+      panel.style.border = config.border || '2px solid #ffffff';
+      panel.style.background = config.background || 'transparent';
+      panel.style.pointerEvents = 'none';
+
+      panelsLayer.appendChild(panel);
+      return true;
+    }
+
+    const layoutPanels = [
+      { top: 50, left: 100, width: 1100, height: 60, border: '2px solid #ffffff' },
+      { top: 150, left: 100, width: 200, height: 500, border: '2px solid #cccccc' },
+      { top: 150, left: 350, width: 700, height: 300, border: '2px solid #999999' },
+      { top: 150, left: 1100, width: 200, height: 150, border: '2px solid #666666' },
+      { top: 350, left: 1100, width: 200, height: 150, border: '2px solid #666666' },
+      { top: 500, left: 350, width: 450, height: 200, border: '2px solid #444444' },
+      { top: 500, left: 850, width: 450, height: 200, border: '2px solid #444444' },
+      { top: 750, left: 100, width: 100, height: 100, border: '2px solid #333333' },
+      { top: 750, left: 250, width: 1050, height: 60, border: '1px solid #555555' },
+      { top: 250, left: 550, width: 300, height: 200, border: '2px dashed #ffffff' }
+    ];
+
+    function processCommand(input) {
+      const cmd = input.trim();
+      if (!cmd) return;
+
+      logToTerminal(`> ${cmd}`);
+
+      if (cmd.startsWith('panel ') || cmd.startsWith('add panel ')) {
+        const objStr = cmd.replace(/^(panel|add panel)\s+/, '');
+        try {
+          const config = new Function('return ' + objStr)();
+          const success = createPanel(config);
+          if (success) logToTerminal('✓ Panel created successfully.', 'success');
+        } catch (e) {
+          logToTerminal('✗ Error: Invalid format.', 'error');
+        }
+      }
+      else if (cmd === 'build') {
+        let successCount = 0;
+        let errorCount = 0;
+        layoutPanels.forEach(p => {
+          if (createPanel(p)) successCount++;
+          else errorCount++;
+        });
+        logToTerminal(`✓ Generated ${successCount} panels. ${errorCount > 0 ? `${errorCount} panels exceeded bounds.` : ''}`, successCount > 0 ? 'success' : 'error');
+      }
+      else if (cmd === 'sync') {
+        loadFromStorage();
+        renderWorkspaceLayout();
+        logToTerminal(`✓ Synced profile + ${workspaceState.savedJobs.length} saved job(s).`, 'success');
+      }
+      else if (cmd === 'fit' || cmd === 'reset') {
+        panX = 0; panY = 0; updateTransform();
+        logToTerminal('✓ View reset to 0,0.', 'success');
+      }
+      else if (cmd === 'clear') {
+        cmdOutput.innerHTML = '';
+        panelsLayer.innerHTML = '';
+      }
+      else {
+        logToTerminal(`Unknown command. Try: sync, fit, panel {...}, build, reset, clear`, 'error');
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (
+        currentMode !== 'pan' &&
+        !e.target.closest('.data-panel') &&
+        !e.target.closest('.cmd-output') &&
+        !e.target.closest('.mode-bar') &&
+        !e.target.closest('.gf-card')
+      ) {
+        cmdInput.focus();
+      }
+    });
+
+    cmdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        processCommand(cmdInput.value);
+        cmdInput.value = '';
+      }
+    });
+  </script>
+</body>
+</html>
